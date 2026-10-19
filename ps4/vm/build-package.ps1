@@ -45,8 +45,11 @@ $resources += 'sce_sys/icon0.png'
 $pic1Destination = Join-Path $packageDir 'sce_sys/pic1.png'
 Copy-Item -LiteralPath $pic1Source -Destination $pic1Destination
 $resources += 'sce_sys/pic1.png'
-# Optional real library background. Only ship it when the PNG is present.
-# The UI falls back to the normal pic1.png if no dedicated asset is supplied.
+# The customized background is required: never publish a misleading PKG
+# containing the old blue menu when the requested artwork was not included.
+if (-not (Test-Path -LiteralPath $menuBackgroundSource)) {
+  throw "Missing required library artwork: $menuBackgroundSource. Upload menu-background.png to ps4/vm/assets/ui-png/ before packaging."
+}
 if (Test-Path -LiteralPath $menuBackgroundSource) {
   $menuBackgroundDestination = Join-Path $packageDir 'resources/ui/menu-background.png'
   New-Item -ItemType Directory -Force (Split-Path -Parent $menuBackgroundDestination) | Out-Null
