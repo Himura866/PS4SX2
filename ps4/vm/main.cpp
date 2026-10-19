@@ -576,7 +576,7 @@ void VMHostPoll()
 		}
 		// Square cycles conservative per-game presets while the VM is paused.
 		// Never promise an FPS increase: EE underclock can slow some games down.
-		if ((raw & ORBIS_PAD_BUTTON_SQUARE) && !(s_previous_host_buttons & ORBIS_PAD_BUTTON_SQUARE))
+		if (pressed & ORBIS_PAD_BUTTON_SQUARE)
 		{
 			static unsigned preset = 0;
 			preset = (preset + 1) % 3;
