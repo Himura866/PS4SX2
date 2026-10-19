@@ -1234,7 +1234,7 @@ namespace PS4GameMenu
 			std::snprintf(hint, sizeof(hint), "Left/Right: change value   |   Resolution range: 1x-%ux", max_upscale);
 		draw->AddText(font, 17.0f * scale, point(138, 756), muted, hint);
 		draw->AddText(font, 17.0f * scale, point(138, 786), muted, "For demanding games (Prince of Persia / Downhill), test 1x before 2x-4x.");
-		draw->AddText(font, 17.0f * scale, point(138, 816), muted, "Up/Down: select   Left/Right: change   X: confirm   Circle: resume");
+		draw->AddText(font, 17.0f * scale, point(138, 816), muted, "Up/Down: select   Left/Right: change   Square: performance preset   Circle: resume");
 			image("controle_x", 1480, 904, 30, 30);
 			draw->AddText(font, 20.0f * scale, point(1524, 909), white, "Confirm");
 			image("controle_bola", 1690, 904, 30, 30);
@@ -1392,7 +1392,7 @@ namespace PS4GameMenu
 			text(1112, 419, 19, muted, "Local PS2 game image");
 			text(1112, 480, 19, accent, "PER-GAME SETTINGS");
 			text(1112, 519, 18, muted, "Resolution / EE profile: available in game");
-			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");
+			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");\n\t\t\ttext(1112, 595, 17, accent, "Pause game + Square: cycle performance presets");
 		}
 		else if (disc_view)
 		{
@@ -1402,7 +1402,7 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);\n\t\tdraw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
 		{
 			const size_t shelf_count = std::min(VisibleItems, s_items.size());
