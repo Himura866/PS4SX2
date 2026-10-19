@@ -1311,7 +1311,7 @@ namespace PS4GameMenu
 				IM_COL32(9, 31, 55, 255), IM_COL32(2, 14, 29, 255),
 				IM_COL32(4, 18, 34, 255), IM_COL32(1, 10, 21, 255));
 		}
-		fill(0, 0, 286, 1080, IM_COL32(3, 15, 28, 244), 0);
+		fill(0, 0, 286, 1080, IM_COL32(3, 15, 28, 168), 0);
 		fill(286, 0, 1634, 92, IM_COL32(4, 19, 34, 220), 0);
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
 		image("menu_logo", 32, 0, 220, 73);
@@ -1367,7 +1367,7 @@ namespace PS4GameMenu
 		// All artwork uses the existing decoded-cover cache on the GS thread.
 		const bool disc_view = s_library_view == LibraryView::Disc;
 		const auto draw_cover = [&](const Item& item, float x, float y, float w, float h) {
-			fill(x, y, w, h, IM_COL32(17, 30, 51, 255), 5);
+			fill(x, y, w, h, IM_COL32(5, 16, 37, 165), 2);
 			if (ImTextureData* art = GetCoverTexture(item.cover))
 			{
 				const float ratio = std::min(w / static_cast<float>(art->Width), h / static_cast<float>(art->Height));
@@ -1387,9 +1387,9 @@ namespace PS4GameMenu
 		{
 			// The printed disc is circular and uses the same art as the game case.
 			constexpr float case_x = 326, case_y = 154, case_w = 347, case_h = 448;
-			fill(case_x - 12, case_y - 9, case_w + 24, case_h + 18, IM_COL32(4, 8, 18, 255), 9);
-			draw->AddRect(point(case_x - 12, case_y - 9), point(case_x + case_w + 12, case_y + case_h + 9),
-				IM_COL32(75, 135, 193, 255), 9 * scale, 2 * scale);
+			fill(case_x - 4, case_y - 4, case_w + 8, case_h + 8, IM_COL32(2, 12, 30, 135), 5);
+			draw->AddRect(point(case_x - 4, case_y - 4), point(case_x + case_w + 4, case_y + case_h + 4),
+				IM_COL32(31, 150, 255, 200), 5 * scale, 1.5f * scale);
 			draw_cover(current, case_x, case_y + 37, case_w, case_h - 37);
 			fill(case_x, case_y, case_w, 37, IM_COL32(5, 9, 19, 255), 0);
 			text(case_x + 16, case_y + 28, 23, white, "PlayStation 2");
@@ -1397,7 +1397,7 @@ namespace PS4GameMenu
 			const ImVec2 center = point(dx + diameter * 0.5f, dy + diameter * 0.5f);
 			draw->AddCircleFilled(point(dx + diameter * 0.5f + 6, dy + diameter * 0.5f + 9),
 				(diameter * 0.5f + 3) * scale, IM_COL32(0, 0, 0, 145), 96);
-			draw->AddCircleFilled(center, diameter * 0.5f * scale, IM_COL32(189, 201, 215, 255), 96);
+			draw->AddCircleFilled(center, diameter * 0.5f * scale, IM_COL32(16, 43, 86, 255), 96);
 			if (ImTextureData* art = GetCoverTexture(current.cover))
 			{
 				const float w = static_cast<float>(art->Width), h = static_cast<float>(art->Height);
@@ -1408,8 +1408,13 @@ namespace PS4GameMenu
 					ImVec2((w + side) / (2 * w), (h + side) / (2 * h)),
 					IM_COL32(255, 255, 255, 255), 172 * scale);
 			}
-			draw->AddCircle(center, 172 * scale, IM_COL32(211, 224, 243, 255), 96, 3 * scale);
-			draw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
+			draw->AddCircle(center, 172 * scale, IM_COL32(50, 176, 255, 255), 96, 3 * scale);
+			if (!current.cover)
+	\t\t{
+	\t\t\tcentered_text(dx + diameter * 0.5f, dy + 145, 23, white, "PLAYSTATION 2");
+	\t\t\tcentered_text(dx + diameter * 0.5f, dy + 235, 17, muted, "NO DISC ART");
+	\t\t}
+	\t\tdraw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
 			draw->AddCircle(center, 35 * scale, IM_COL32(221, 228, 242, 255), 48, 5 * scale);
 			draw->AddCircleFilled(center, 12 * scale, IM_COL32(2, 9, 21, 255), 32);
 			text(1100, 224, 31, white, fit(current.name, 31, 440).c_str());
@@ -1445,7 +1450,7 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 160), 0);
 		fill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
 		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
@@ -1460,9 +1465,9 @@ namespace PS4GameMenu
 				const bool focused = index == selected;
 				if (focused)
 				{
-					fill(x - 5, shelf_y - 9, shelf_w + 10, shelf_h + 18, IM_COL32(15, 84, 157, 255), 5);
-					draw->AddRect(point(x - 5, shelf_y - 9), point(x + shelf_w + 5, shelf_y + shelf_h + 9),
-						accent, 5 * scale, 3 * scale);
+					fill(x - 3, shelf_y - 5, shelf_w + 6, shelf_h + 10, IM_COL32(10, 65, 145, 180), 3);
+					draw->AddRect(point(x - 3, shelf_y - 5), point(x + shelf_w + 3, shelf_y + shelf_h + 5),
+						accent, 3 * scale, 2 * scale);
 				}
 				draw_cover(s_items[index], x, shelf_y + 24, shelf_w, shelf_h - 24);
 				fill(x, shelf_y, shelf_w, 24, IM_COL32(4, 9, 19, 255), 0);
