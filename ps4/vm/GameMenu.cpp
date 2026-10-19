@@ -1303,25 +1303,26 @@ namespace PS4GameMenu
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
 		image("menu_logo", 32, 0, 220, 73);
 		centered_text(142, 82, 11, muted, "PS4SX2 V12  /  PLAYSTATION 2");
-		// Pod do Himura: small PS2-blue channel signature and a hand-drawn crown.
-		// Kept in the header, away from game covers and the controller navigation.
-		fill(1185, 16, 265, 62, IM_COL32(4, 23, 46, 215), 11);
-		draw->AddRect(point(1185, 16), point(1450, 78), IM_COL32(33, 148, 245, 190),
-			11 * scale, 1.5f * scale);
-		const ImU32 crown_gold = IM_COL32(255, 197, 77, 255);
-		draw->AddLine(point(1204, 37), point(1200, 25), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1200, 25), point(1216, 32), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1216, 32), point(1224, 19), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1224, 19), point(1232, 32), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1232, 32), point(1247, 25), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1247, 25), point(1243, 37), crown_gold, 2.5f * scale);
-		draw->AddLine(point(1204, 37), point(1243, 37), crown_gold, 2.5f * scale);
-		text(1256, 41, 21, white, "POD DO HIMURA");
-		text(1256, 65, 12, accent, "PS4SX2 V12  /  PS2");
+		// Centered channel signature: the crown and luminous strokes are vector UI,
+		// so no per-frame image decoding or GPU texture uploads are needed.
+		const ImU32 crown_gold = IM_COL32(255, 198, 76, 255);
+		fill(700, 7, 565, 77, IM_COL32(4, 17, 41, 210), 12);
+		draw->AddRect(point(700, 7), point(1265, 84), IM_COL32(37, 140, 255, 195), 12 * scale, 1.5f * scale);
+		const ImVec2 crown_points[] = {point(728, 51), point(718, 20), point(741, 36),
+			point(755, 12), point(770, 36), point(793, 20), point(783, 51)};
+		for (int i = 0; i < 6; ++i)
+			draw->AddLine(crown_points[i], crown_points[i + 1], crown_gold, 3.0f * scale);
+		draw->AddLine(point(728, 53), point(783, 53), crown_gold, 4.0f * scale);
+		text(814, 29, 15, IM_COL32(190, 221, 255, 255), "POD DO");
+		text(807, 68, 43, IM_COL32(239, 248, 255, 255), "HIMURA");
+		draw->AddLine(point(812, 74), point(1085, 74), IM_COL32(23, 173, 255, 245), 3.0f * scale);
+		text(1100, 62, 16, accent, "PS2 LIBRARY");
+		text(1540, 40, 30, white, "PS4SX2");
+		text(1705, 64, 32, accent, "V12");
 
 		const size_t selected = std::min(s_selected, s_items.size() - 1);
 		const Item& current = s_items[selected];
-		text(348, 59, 28, white, fit(current.name, 28, 1430).c_str());
+		// The selected game title lives in the details panel, leaving room for the channel logo.
 		if (PS4Release::HasUpdate())
 		{
 			fill(1480, 22, 408, 50, IM_COL32(8, 54, 91, 235), 10);
@@ -1372,14 +1373,14 @@ namespace PS4GameMenu
 		if (!disc_view && !current.path.empty())
 		{
 			// The printed disc is circular and uses the same art as the game case.
-			constexpr float case_x = 364, case_y = 158, case_w = 335, case_h = 444;
+			constexpr float case_x = 326, case_y = 154, case_w = 347, case_h = 448;
 			fill(case_x - 12, case_y - 9, case_w + 24, case_h + 18, IM_COL32(4, 8, 18, 255), 9);
 			draw->AddRect(point(case_x - 12, case_y - 9), point(case_x + case_w + 12, case_y + case_h + 9),
 				IM_COL32(75, 135, 193, 255), 9 * scale, 2 * scale);
 			draw_cover(current, case_x, case_y + 37, case_w, case_h - 37);
 			fill(case_x, case_y, case_w, 37, IM_COL32(5, 9, 19, 255), 0);
 			text(case_x + 16, case_y + 28, 23, white, "PlayStation 2");
-			constexpr float dx = 729, dy = 228, diameter = 352;
+			constexpr float dx = 697, dy = 210, diameter = 360;
 			const ImVec2 center = point(dx + diameter * 0.5f, dy + diameter * 0.5f);
 			draw->AddCircleFilled(point(dx + diameter * 0.5f + 6, dy + diameter * 0.5f + 9),
 				(diameter * 0.5f + 3) * scale, IM_COL32(0, 0, 0, 145), 96);
@@ -1398,18 +1399,30 @@ namespace PS4GameMenu
 			draw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
 			draw->AddCircle(center, 35 * scale, IM_COL32(221, 228, 242, 255), 48, 5 * scale);
 			draw->AddCircleFilled(center, 12 * scale, IM_COL32(2, 9, 21, 255), 32);
-			text(1110, 241, 31, white, fit(current.name, 31, 725).c_str());
-			text(1112, 288, 19, muted, "PLAYSTATION 2  /  GAME DETAILS");
+			text(1100, 224, 31, white, fit(current.name, 31, 440).c_str());
+			text(1102, 268, 19, muted, "PLAYSTATION 2  /  GAME DETAILS");
 			if (!current.serial.empty())
-				text(1112, 339, 19, white, ("Serial: " + current.serial).c_str());
+				text(1102, 320, 19, white, ("Serial: " + current.serial).c_str());
 			const size_t dot = current.path.find_last_of('.');
 			const std::string format = dot == std::string::npos ? "Disc image" : current.path.substr(dot + 1);
-			text(1112, 379, 19, white, ("Format: " + format).c_str());
-			text(1112, 419, 19, muted, "Local PS2 game image");
-			text(1112, 480, 19, accent, "PER-GAME SETTINGS");
-			text(1112, 519, 18, muted, "Resolution / EE profile: available in game");
-			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");
-			text(1112, 595, 17, accent, "Pause game + Square: cycle performance presets");
+			text(1102, 362, 19, white, ("Format: " + format).c_str());
+			text(1102, 404, 19, muted, "Local PS2 game image");
+			text(1102, 469, 19, accent, "PER-GAME SETTINGS");
+			text(1102, 508, 18, muted, "Resolution / EE profile: available in game");
+			text(1102, 545, 18, muted, "Memory Card: PS2 virtual card");
+			text(1102, 584, 17, accent, "Pause game + Square: cycle performance presets");
+			// Right-side actions echo the reference artwork. These labels describe
+			// existing controls only; no fake clickable settings are introduced.
+			fill(1535, 258, 356, 330, IM_COL32(3, 17, 40, 216), 12);
+			draw->AddRect(point(1535, 258), point(1891, 588),
+				IM_COL32(30, 116, 215, 220), 12 * scale, 1.5f * scale);
+			fill(1550, 276, 326, 57, IM_COL32(12, 89, 181, 225), 8);
+			draw->AddRect(point(1550, 276), point(1876, 333), accent, 8 * scale, 2.0f * scale);
+			text(1571, 312, 23, white, "X  INICIAR JOGO");
+			text(1571, 382, 20, white, "O  Voltar / Sair");
+			text(1571, 435, 20, white, "[]  Favoritos");
+			text(1571, 488, 20, white, "/\\  Atualizar jogos");
+			text(1571, 548, 16, muted, "Ajustes: pause durante o jogo");
 		}
 		else if (disc_view)
 		{
@@ -1419,7 +1432,7 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);\n\t\tfill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
 		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
 		{
