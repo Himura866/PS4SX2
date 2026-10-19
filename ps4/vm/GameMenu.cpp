@@ -1302,7 +1302,7 @@ namespace PS4GameMenu
 		fill(286, 0, 1634, 92, IM_COL32(4, 19, 34, 220), 0);
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
 		image("menu_logo", 32, 0, 220, 73);
-		centered_text(142, 82, 11, muted, "PLAYSTATION 2 EMULATOR");
+		centered_text(142, 82, 11, muted, "PS4SX2 V12  /  PLAYSTATION 2");
 		const size_t selected = std::min(s_selected, s_items.size() - 1);
 		const Item& current = s_items[selected];
 		text(348, 59, 28, white, fit(current.name, 28, 1430).c_str());
