@@ -223,7 +223,7 @@ namespace PS4GameMenu
 			// replacing the installed PKG. Fall back to packaged pic1.png.
 			auto library_background = LoadImageFile("/data/PS4SX2/menu-background.png", "library background", false);
 			if (!library_background)
-				library_background = FindUiAsset("loading_background");
+				library_background = s_ui_images.back().source;
 			s_ui_images.push_back({"library_background", std::move(library_background)});
 			ProbeLog("Game menu: loaded %zu UI button assets\n", s_ui_images.size());
 		}
@@ -1298,12 +1298,19 @@ namespace PS4GameMenu
 		draw->AddRectFilled(ImVec2(0, 0), size, IM_COL32(3, 13, 25, 255));
 		// Layered navy background and restrained diagonal lighting give the menu
 		// depth without adding a texture or a frame-time allocation.
-		draw->AddRectFilledMultiColor(point(0, 0), point(1920, 1080), IM_COL32(9, 31, 55, 255),
-			IM_COL32(2, 14, 29, 255), IM_COL32(4, 18, 34, 255), IM_COL32(1, 10, 21, 255));
-		for (int i = -4; i < 9; ++i)
-			draw->AddLine(point(266 + i * 108, 0), point(940 + i * 108, 1080), IM_COL32(22, 71, 119, 38), 1.0f * scale);
-		draw->AddCircle(point(1680, 130), 390.0f * scale, IM_COL32(22, 92, 151, 28), 72, 2.0f * scale);
-		draw->AddCircle(point(1680, 130), 310.0f * scale, IM_COL32(17, 79, 142, 24), 72, 2.0f * scale);
+		if (ImTextureData* backdrop = GetCoverTexture(FindUiAsset("library_background")))
+		{
+			// A full-bleed 16:9 background, drawn behind every interactive element.
+			draw->AddImage(backdrop->GetTexRef(), point(0, 0), point(1920, 1080));
+			// Readability scrims: retain artwork while protecting text legibility.
+			fill(0, 0, 1920, 1080, IM_COL32(0, 8, 23, 55), 0);
+		}
+		else
+		{
+			draw->AddRectFilledMultiColor(point(0, 0), point(1920, 1080),
+				IM_COL32(9, 31, 55, 255), IM_COL32(2, 14, 29, 255),
+				IM_COL32(4, 18, 34, 255), IM_COL32(1, 10, 21, 255));
+		}
 		fill(0, 0, 286, 1080, IM_COL32(3, 15, 28, 244), 0);
 		fill(286, 0, 1634, 92, IM_COL32(4, 19, 34, 220), 0);
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
