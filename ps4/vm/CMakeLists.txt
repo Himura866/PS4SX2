@@ -281,13 +281,13 @@ add_library(ps4_chd STATIC
 target_include_directories(ps4_chd PUBLIC "${PCSX2_ROOT}/3rdparty/libchdr/include"
   PRIVATE "${PCSX2_ROOT}/3rdparty/lzma/include" "${PCSX2_ROOT}/ps4/deps/prefix/include")
 target_compile_definitions(ps4_chd PRIVATE _7ZIP_ST)
-target_compile_options(ps4_chd PRIVATE -march=btver2 -ffunction-sections -fdata-sections -fvisibility=hidden)
+target_compile_options(ps4_chd PRIVATE -O3 -march=btver2 -ffunction-sections -fdata-sections -fvisibility=hidden)
 target_link_libraries(ps4_chd PRIVATE z "${PCSX2_ROOT}/ps4/deps/prefix/lib/libzstd.a")
 # (AI-assisted) PS1 SPU runs at 44.1 kHz; AudioOut remains at 48 kHz.
 # Reuse the bundled Speex resampler without changing vendored sources.
 add_library(ps4_audio_resampler STATIC "${PCSX2_ROOT}/3rdparty/cubeb/subprojects/speex/resample.c")
 target_compile_definitions(ps4_audio_resampler PRIVATE OUTSIDE_SPEEX FLOATING_POINT RANDOM_PREFIX=ps4sx2)
-target_compile_options(ps4_audio_resampler PRIVATE -march=btver2 -ffunction-sections -fdata-sections -fvisibility=hidden)
+target_compile_options(ps4_audio_resampler PRIVATE -O3 -march=btver2 -ffunction-sections -fdata-sections -fvisibility=hidden)
 set_property(SOURCE "${PCSX2_ROOT}/ps4/core/AudioStreamPS4.cpp"
   APPEND PROPERTY COMPILE_DEFINITIONS OUTSIDE_SPEEX RANDOM_PREFIX=ps4sx2)
 add_executable(vm_boot main.cpp GameMenu.cpp CoverImage.cpp CoverDownload.cpp ReleaseCheck.cpp HostVM.cpp UIVM.cpp CPUInfoVM.cpp NetworkVM.cpp CaptureVM.cpp DiscVM.cpp PhysicalDisc.cpp PlatformVM.cpp
@@ -320,7 +320,7 @@ target_include_directories(vm_boot PRIVATE
   ${shaderc_headers_SOURCE_DIR}/libshaderc/include ${glslang_SOURCE_DIR})
 target_compile_definitions(vm_boot PRIVATE PCSX2_PS4=1 PCSX2_PS4_VM_BOOT=1 PS4=1 USE_GLES2=1 BOREALIS_USE_OPENGL=1 $<$<BOOL:${PCSX2_VM_JIT}>:PCSX2_PS4_VM_BOOT_JIT=1> $<$<BOOL:${PCSX2_VM_FASTMEM}>:PCSX2_PS4_VM_BOOT_FASTMEM=1> $<$<BOOL:${PCSX2_VM_MTVU}>:PCSX2_PS4_VM_BOOT_MTVU=1> ENABLE_VULKAN=1 __POSIX__=1 _M_X86=1
   OVERRIDE_HOST_PAGE_SIZE=0x4000 OVERRIDE_HOST_CACHE_LINE_SIZE=64)
-target_compile_options(vm_boot PRIVATE -march=btver2 -msse4.1 -mno-avx2 -mno-bmi2 -ffunction-sections -fdata-sections -fvisibility=hidden
+target_compile_options(vm_boot PRIVATE -O2 -march=btver2 -msse4.1 -mno-avx2 -mno-bmi2 -ffunction-sections -fdata-sections -fvisibility=hidden
   "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include compare>" "SHELL:-include strings.h")
 target_link_options(vm_boot PRIVATE --gc-sections --error-limit=0)
 ps4_link_mesa(vm_boot)
