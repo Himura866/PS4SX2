@@ -1130,6 +1130,8 @@ namespace PS4GameMenu
 			const unsigned upscale = menu_state.upscale;
 			const unsigned aspect = menu_state.aspect;
 			const bool show_performance_overlay = menu_state.show_overlay;
+			const unsigned ee_profile = menu_state.ee_profile;
+			const bool async_audio = menu_state.async_audio;
 			ImDrawList* draw = ImGui::GetBackgroundDrawList();
 			ImFont* font = ImGui::GetFont();
 			const ImVec2 size = ImGui::GetIO().DisplaySize;
@@ -1161,12 +1163,19 @@ namespace PS4GameMenu
 			char performance_label[96];
 			std::snprintf(performance_label, sizeof(performance_label), "Performance overlay:  < %s >",
 				show_performance_overlay ? "On" : "Off");
-			const char* labels[] = {"Resume game", resolution, aspect_label, performance_label, "Return to main menu", "Exit application"};
+			char ee_label[96];
+			static constexpr const char* ee_names[] = {"Normal", "Balanced", "Performance"};
+			std::snprintf(ee_label, sizeof(ee_label), "EE cycles: < %s >", ee_names[std::min(ee_profile, 2u)]);
+			char audio_label[96];
+			std::snprintf(audio_label, sizeof(audio_label), "Audio sync: < %s >", async_audio ? "AsyncMix" : "TimeStretch");
+			const char* labels[] = {"Resume game", resolution, aspect_label, performance_label, ee_label, audio_label, "Return to main menu", "Exit application"};
 			const char* descriptions[] = {
 				"Continue emulation from the current frame",
 				"Increase internal rendering quality for this session",
 				"Choose the display shape used by the GS renderer",
 				"Show or hide FPS, speed and timing indicators",
+				"Choose guest EE cycle underclock (may affect game timing)",
+				"Audio sync selection (takes effect on next game launch)",
 				"Close the VM and reopen the PS4SX2 game library",
 				"Close the VM and exit PS4SX2"};
 			const auto draw_option_icon = [&](unsigned row, float cx, float cy, bool selected) {
@@ -1206,20 +1215,20 @@ namespace PS4GameMenu
 					draw->AddLine(point(cx + 10, cy - 12), point(cx - 10, cy + 12), icon_line, 3 * scale);
 				}
 			};
-			for (unsigned row = 0; row < 6; row++)
+			for (unsigned row = 0; row < 8; row++)
 			{
-				const float y = 206.0f + row * 84.0f;
+				const float y = 206.0f + row * 67.0f;
 				const bool selected = selected_row == row;
-				draw->AddRectFilled(point(112, y), point(1808, y + 82),
+				draw->AddRectFilled(point(112, y), point(1808, y + 65),
 					selected ? IM_COL32(20, 77, 125, 255) : IM_COL32(11, 33, 52, 255), 10.0f * scale);
 				if (selected)
 					draw->AddRect(point(112, y), point(1808, y + 82), accent, 10.0f * scale, 2.0f * scale, 0);
-				draw_option_icon(row, 168, y + 41, selected);
-				draw->AddText(font, 26.0f * scale, point(226, y + 19), white, labels[row]);
-				draw->AddText(font, 16.0f * scale, point(226, y + 53), muted, descriptions[row]);
-				if (row == 1 || row == 2 || row == 3)
+				draw_option_icon(row, 168, y + 32, selected);
+				draw->AddText(font, 26.0f * scale, point(226, y + 10), white, labels[row]);
+				draw->AddText(font, 16.0f * scale, point(226, y + 43), muted, descriptions[row]);
+				if (row >= 1 && row <= 5)
 					draw->AddText(font, 20.0f * scale, point(1580, y + 29), selected ? white : muted,
-						row == 1 ? "ADJUST" : (row == 2 ? "SELECT" : "TOGGLE"));
+						row == 1 ? "ADJUST" : (row == 3 ? "TOGGLE" : "SELECT"));
 			}
 			char hint[128];
 			std::snprintf(hint, sizeof(hint), "Left/Right: change value   |   Resolution range: 1x-%ux", max_upscale);
@@ -1453,10 +1462,10 @@ namespace PS4GameMenu
 	}
 
 	void SetInGameMenu(bool visible, unsigned selected, unsigned upscale, unsigned max_upscale, unsigned aspect,
-		bool show_performance_overlay)
+		bool show_performance_overlay, unsigned ee_profile, bool async_audio)
 	{
 		const unsigned state = PackInGameMenuState({visible, selected, upscale, max_upscale, aspect,
-			show_performance_overlay});
+			show_performance_overlay, ee_profile, async_audio});
 		s_in_game_state.store(state, std::memory_order_release);
 		// Paused emulation produces no VSync. Queue the redraw on the GS thread
 		// so every value change is visible immediately in the panel.
