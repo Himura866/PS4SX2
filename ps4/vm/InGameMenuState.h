@@ -15,6 +15,8 @@ namespace PS4GameMenu
 		unsigned max_upscale;
 		unsigned aspect;
 		bool show_overlay;
+		unsigned ee_profile;
+		bool async_audio;
 	};
 
 	constexpr std::uint32_t PackInGameMenuState(InGameMenuState value)
@@ -22,11 +24,13 @@ namespace PS4GameMenu
 		if (!value.visible)
 			return 0;
 		const unsigned limit = std::clamp(value.max_upscale, 1u, 4u);
-		return (std::min(value.selected, 5u) + 1u) |
+		return (std::min(value.selected, 7u) + 1u) |
 			(std::clamp(value.upscale, 1u, limit) << 8) |
 			(limit << 12) |
 			(std::min(value.aspect, 4u) << 16) |
-			(value.show_overlay ? (1u << 20) : 0u);
+			(value.show_overlay ? (1u << 20) : 0u) |
+			(std::min(value.ee_profile, 2u) << 21) |
+			(value.async_audio ? (1u << 23) : 0u);
 	}
 
 	constexpr InGameMenuState UnpackInGameMenuState(std::uint32_t value)
@@ -35,8 +39,9 @@ namespace PS4GameMenu
 		// resolution with its limit (1 became 65), and aspect with overlay (0 became 16).
 		const unsigned selection = value & 0xffu;
 		const unsigned limit = std::clamp((value >> 12) & 0x0fu, 1u, 4u);
-		return {selection != 0, selection ? std::min(selection - 1u, 5u) : 0u,
+		return {selection != 0, selection ? std::min(selection - 1u, 7u) : 0u,
 			std::clamp((value >> 8) & 0x0fu, 1u, limit), limit,
-			std::min((value >> 16) & 0x0fu, 4u), (value & (1u << 20)) != 0};
+			std::min((value >> 16) & 0x0fu, 4u), (value & (1u << 20)) != 0,
+			std::min((value >> 21) & 3u, 2u), (value & (1u << 23)) != 0};
 	}
 } // namespace PS4GameMenu
