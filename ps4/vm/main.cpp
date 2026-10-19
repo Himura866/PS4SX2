@@ -50,6 +50,7 @@
 #include <string>
 #include <string_view>
 #include <cstdio>
+#include <cstring>
 #include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
@@ -144,6 +145,71 @@ static unsigned s_max_game_upscale = 1;
 static unsigned s_game_aspect = 1;
 static unsigned s_game_ee_profile = 1;
 static bool s_game_async_audio = false;
+static std::string s_per_game_profile_path;
+
+// One independent, editable profile per ISO path. FNV-1a avoids putting untrusted
+// ISO filenames in filesystem paths; this is not a security hash.
+static void SetPerGameProfilePath(const std::string& game)
+{
+    s_per_game_profile_path.clear();
+    if (game.empty() || game == PS4Disc::DevicePath)
+        return;
+    unsigned long long hash = 14695981039346656037ULL;
+    for (unsigned char c : game)
+    {
+        hash ^= c;
+        hash *= 1099511628211ULL;
+    }
+    char name[128];
+    std::snprintf(name, sizeof(name), "/data/PS4SX2/inis/ps4sx2-game-%016llx.cfg", hash);
+    s_per_game_profile_path = name;
+}
+
+static void SavePerGameProfile()
+{
+    if (s_per_game_profile_path.empty())
+        return;
+    const std::string temp = s_per_game_profile_path + ".tmp";
+    FILE* file = std::fopen(temp.c_str(), "w");
+    if (!file)
+        return;
+    std::fprintf(file, "PS4SX2_PROFILE_V1 %u %u %u\\n", s_game_upscale, s_game_aspect, s_game_ee_profile);
+    const bool written = std::fflush(file) == 0 && std::ferror(file) == 0;
+    const bool closed = std::fclose(file) == 0;
+    if (written && closed)
+    {
+        if (std::rename(temp.c_str(), s_per_game_profile_path.c_str()) != 0)
+            unlink(temp.c_str());
+    }
+    else
+        unlink(temp.c_str());
+}
+
+static void LoadPerGameProfile()
+{
+    if (s_per_game_profile_path.empty())
+        return;
+    FILE* file = std::fopen(s_per_game_profile_path.c_str(), "r");
+    if (!file)
+        return;
+    char version[32] = {};
+    unsigned resolution = 0, aspect = 0, ee = 0;
+    const int fields = std::fscanf(file, "%31s %u %u %u", version, &resolution, &aspect, &ee);
+    std::fclose(file);
+    if (fields != 4 || std::strcmp(version, "PS4SX2_PROFILE_V1") != 0 ||
+        resolution < 1 || resolution > 4 || aspect > 4 || ee > 2)
+        return;
+    s_game_upscale = std::min(resolution, s_max_game_upscale);
+    s_game_aspect = aspect;
+    s_game_ee_profile = ee;
+    EmuConfig.GS.UpscaleMultiplier = static_cast<float>(s_game_upscale);
+    MTGS::ApplySettings();
+    ApplyGameAspect(s_game_aspect);
+    EmuConfig.Speedhacks.EECycleRate = ee == 0 ? 0 : (ee == 1 ? -1 : -2);
+    ProbeLog("Per-game ISO profile loaded: resolution=%u aspect=%u EE=%u\\n",
+        s_game_upscale, s_game_aspect, s_game_ee_profile);
+}
+
 static bool s_game_show_performance_overlay = true;
 static u32 s_game_menu_direction = 0;
 static double s_game_menu_next_repeat = 0.0;
@@ -563,6 +629,8 @@ void VMHostPoll()
 					ApplyPerformanceOverlay();
 				}
 			}
+			if (navigation == ORBIS_PAD_BUTTON_LEFT || navigation == ORBIS_PAD_BUTTON_RIGHT)
+				SavePerGameProfile();
 			PublishGameMenu();
 		}
 		s_game_menu_direction = navigation;
@@ -840,6 +908,7 @@ static void* RunVM(void*)
 		ProbeLog("PS1 compatibility profile: full BIOS boot; exact SMC checks; byte-copy fusion and VTLB register caches OFF; WaitLoop=upstream; IntcStat/fastCDVD/MTVU OFF; EE rate=0 skip=0\n");
 	}
 	boot.filename = s_selected_game;
+	SetPerGameProfilePath(boot.filename);
 	ProbeLog("Session archive: platform marker saved=%d platform=%s\n",
 		PS4SessionLogs::MarkGame(platform) ? 1 : 0,
 		platform == GamePlatform::PS1 ? "PS1" : platform == GamePlatform::PS2 ? "PS2" : "Other");
@@ -876,6 +945,8 @@ static void* RunVM(void*)
 			EmuConfig.Cpu.Recompiler.EnableFastmem ? "on" : "off");
 		ProbeLog("VM initialized: executing BIOS; no probe MMIO shadows\n");
 		PS4Telemetry::Stage("vm-running");
+		ReadGameResolution();
+		LoadPerGameProfile();
 		// (AI-assisted) A DS4 has no dedicated analog-mode switch; start the emulated DS2 in analog mode.
 		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_ANALOG, 1.0f);
 		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_ANALOG, 0.0f);
