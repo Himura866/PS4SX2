@@ -146,6 +146,8 @@ static unsigned s_game_aspect = 1;
 static unsigned s_game_ee_profile = 1;
 static bool s_game_async_audio = false;
 static std::string s_per_game_profile_path;
+static void ApplyGameAspect(unsigned aspect);
+static void ReadGameResolution();
 
 // One independent, editable profile per ISO path. FNV-1a avoids putting untrusted
 // ISO filenames in filesystem paths; this is not a security hash.
