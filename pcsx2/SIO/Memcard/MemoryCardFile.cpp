@@ -325,7 +325,11 @@ void FileMemoryCard::Open()
 
 		if (FileSystem::GetPathFileSize(fname.c_str()) <= 0)
 		{
-			if (!Create(fname.c_str(), 8))
+			// Keep the primary card at the PS2-standard 8 MB for broad game
+			// compatibility. Give the second slot 32 MB for larger save libraries.
+			// Existing cards are never resized or overwritten here.
+			const uint default_size_mb = (slot == 1) ? 32u : 8u;
+			if (!Create(fname.c_str(), default_size_mb))
 			{
 				Host::ReportErrorAsync(TRANSLATE_SV("MemoryCard", "Memory Card Creation Failed"),
 					fmt::format(TRANSLATE_FS("MemoryCard", "Could not create the memory card:\n{}"),
