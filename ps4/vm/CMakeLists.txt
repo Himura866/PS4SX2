@@ -7,6 +7,7 @@ set(PS4_PAID "0x3800000000000011" CACHE STRING "Program authority ID of eboot.bi
 option(PCSX2_VM_JIT "Enable the experimental x86 EE/IOP/VU recompilers" ON)
 option(PCSX2_VM_FASTMEM "Enable experimental 4 GiB VTLB fastmem and Orbis fault handling" OFF)
 option(PCSX2_VM_MTVU "Enable experimental multithreaded VU1" ON)
+option(PCSX2_VM_AGGRESSIVE_OPT "Try -O3 for the VM executable; test compatibility and frame pacing before shipping" OFF)
 if(PCSX2_VM_FASTMEM AND NOT PCSX2_VM_JIT)
   message(FATAL_ERROR "PCSX2_VM_FASTMEM requires PCSX2_VM_JIT=ON")
 endif()
@@ -322,6 +323,10 @@ target_compile_definitions(vm_boot PRIVATE PCSX2_PS4=1 PCSX2_PS4_VM_BOOT=1 PS4=1
   OVERRIDE_HOST_PAGE_SIZE=0x4000 OVERRIDE_HOST_CACHE_LINE_SIZE=64)
 target_compile_options(vm_boot PRIVATE -O2 -march=btver2 -msse4.1 -mno-avx2 -mno-bmi2 -ffunction-sections -fdata-sections -fvisibility=hidden
   "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include compare>" "SHELL:-include strings.h")
+if(PCSX2_VM_AGGRESSIVE_OPT)
+  target_compile_options(vm_boot PRIVATE -O3)
+  message(WARNING "Aggressive -O3 VM build enabled: benchmark and verify game compatibility on real PS4 hardware")
+endif()
 target_link_options(vm_boot PRIVATE --gc-sections --error-limit=0)
 ps4_link_mesa(vm_boot)
 target_link_libraries(vm_boot PRIVATE glslang glslang-default-resource-limits ryml ps4_audio_resampler ps4_chd
