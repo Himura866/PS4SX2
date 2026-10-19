@@ -1303,6 +1303,22 @@ namespace PS4GameMenu
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
 		image("menu_logo", 32, 0, 220, 73);
 		centered_text(142, 82, 11, muted, "PS4SX2 V12  /  PLAYSTATION 2");
+		// Pod do Himura: small PS2-blue channel signature and a hand-drawn crown.
+		// Kept in the header, away from game covers and the controller navigation.
+		fill(1185, 16, 265, 62, IM_COL32(4, 23, 46, 215), 11);
+		draw->AddRect(point(1185, 16), point(1450, 78), IM_COL32(33, 148, 245, 190),
+			11 * scale, 1.5f * scale);
+		const ImU32 crown_gold = IM_COL32(255, 197, 77, 255);
+		draw->AddLine(point(1204, 37), point(1200, 25), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1200, 25), point(1216, 32), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1216, 32), point(1224, 19), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1224, 19), point(1232, 32), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1232, 32), point(1247, 25), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1247, 25), point(1243, 37), crown_gold, 2.5f * scale);
+		draw->AddLine(point(1204, 37), point(1243, 37), crown_gold, 2.5f * scale);
+		text(1256, 41, 21, white, "POD DO HIMURA");
+		text(1256, 65, 12, accent, "PS4SX2 V12  /  PS2");
+
 		const size_t selected = std::min(s_selected, s_items.size() - 1);
 		const Item& current = s_items[selected];
 		text(348, 59, 28, white, fit(current.name, 28, 1430).c_str());
