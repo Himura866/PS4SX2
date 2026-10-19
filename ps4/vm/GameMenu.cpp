@@ -1333,6 +1333,31 @@ namespace PS4GameMenu
 			image(sidebar_icons[i], 43, y + 12, 34, 34);
 			text(91, y + 37, active ? 19 : 18, active ? white : muted, sidebar_labels[i]);
 		}
+		// PS2-inspired physical-media preview. Reuses the already cached cover texture;
+		// no per-frame decoding, allocations, or additional filesystem reads.
+		if (s_library_view != LibraryView::Disc && !current.path.empty())
+		{
+			constexpr float disc_x = 69.0f, disc_y = 676.0f, disc_size = 178.0f;
+			const ImVec2 center = point(disc_x + disc_size * 0.5f, disc_y + disc_size * 0.5f);
+			draw->AddCircleFilled(point(disc_x + 91, disc_y + 94), 94.0f * scale, IM_COL32(0, 0, 0, 100), 64);
+			draw->AddCircleFilled(center, disc_size * 0.5f * scale, IM_COL32(201, 213, 229, 255), 64);
+			if (ImTextureData* disc_art = GetCoverTexture(current.cover))
+			{
+				const float w = static_cast<float>(disc_art->Width);
+				const float h = static_cast<float>(disc_art->Height);
+				const float side = std::min(w, h);
+				const ImVec2 uv0((w - side) / (2.0f * w), (h - side) / (2.0f * h));
+				const ImVec2 uv1((w + side) / (2.0f * w), (h + side) / (2.0f * h));
+				draw->AddImageRounded(disc_art->GetTexRef(), point(disc_x + 4, disc_y + 4),
+					point(disc_x + disc_size - 4, disc_y + disc_size - 4), uv0, uv1,
+					IM_COL32(245, 245, 250, 255), 85.0f * scale);
+			}
+			draw->AddCircle(center, (disc_size * 0.5f - 3) * scale, IM_COL32(210, 223, 242, 240), 64, 3.0f * scale);
+			draw->AddCircleFilled(center, 17.0f * scale, IM_COL32(14, 24, 42, 245), 32);
+			draw->AddCircle(center, 17.0f * scale, IM_COL32(224, 230, 238, 255), 32, 3.0f * scale);
+			draw->AddCircleFilled(center, 5.0f * scale, IM_COL32(8, 18, 32, 255), 24);
+			centered_text(158, 884, 16, muted, "PS2  /  GAME DISC");
+		}
 		const size_t total_rows = (s_items.size() + GridColumns - 1) / GridColumns;
 		const size_t selected_row = selected / GridColumns;
 		const size_t max_first_row = total_rows > VisibleRows ? total_rows - VisibleRows : 0;
