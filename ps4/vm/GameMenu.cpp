@@ -48,8 +48,8 @@ namespace PS4GameMenu
 		constexpr const char* RecentFile = "/data/PS4SX2/recent.txt";
 		constexpr const char* UiAssetsDirectory = "/app0/resources/ui";
 		constexpr const char* IntroDirectory = "/app0/resources/intro";
-		constexpr size_t GridColumns = 4;
-		constexpr size_t VisibleRows = 2;
+		constexpr size_t GridColumns = 8;
+		constexpr size_t VisibleRows = 1;
 		constexpr size_t VisibleItems = GridColumns * VisibleRows;
 		enum class LibraryView : unsigned
 		{
@@ -1333,114 +1333,105 @@ namespace PS4GameMenu
 			image(sidebar_icons[i], 43, y + 12, 34, 34);
 			text(91, y + 37, active ? 19 : 18, active ? white : muted, sidebar_labels[i]);
 		}
-		// PS2-inspired physical-media preview. Reuses the already cached cover texture;
-		// no per-frame decoding, allocations, or additional filesystem reads.
-		if (s_library_view != LibraryView::Disc && !current.path.empty())
-		{
-			constexpr float disc_x = 69.0f, disc_y = 676.0f, disc_size = 178.0f;
-			const ImVec2 center = point(disc_x + disc_size * 0.5f, disc_y + disc_size * 0.5f);
-			draw->AddCircleFilled(point(disc_x + 91, disc_y + 94), 94.0f * scale, IM_COL32(0, 0, 0, 100), 64);
-			draw->AddCircleFilled(center, disc_size * 0.5f * scale, IM_COL32(201, 213, 229, 255), 64);
-			if (ImTextureData* disc_art = GetCoverTexture(current.cover))
-			{
-				const float w = static_cast<float>(disc_art->Width);
-				const float h = static_cast<float>(disc_art->Height);
-				const float side = std::min(w, h);
-				const ImVec2 uv0((w - side) / (2.0f * w), (h - side) / (2.0f * h));
-				const ImVec2 uv1((w + side) / (2.0f * w), (h + side) / (2.0f * h));
-				draw->AddImageRounded(disc_art->GetTexRef(), point(disc_x + 4, disc_y + 4),
-					point(disc_x + disc_size - 4, disc_y + disc_size - 4), uv0, uv1,
-					IM_COL32(245, 245, 250, 255), 85.0f * scale);
-			}
-			draw->AddCircle(center, (disc_size * 0.5f - 3) * scale, IM_COL32(210, 223, 242, 240), 64, 3.0f * scale);
-			draw->AddCircleFilled(center, 17.0f * scale, IM_COL32(14, 24, 42, 245), 32);
-			draw->AddCircle(center, 17.0f * scale, IM_COL32(224, 230, 238, 255), 32, 3.0f * scale);
-			draw->AddCircleFilled(center, 5.0f * scale, IM_COL32(8, 18, 32, 255), 24);
-			centered_text(158, 884, 16, muted, "PS2  /  GAME DISC");
-		}
-		const size_t total_rows = (s_items.size() + GridColumns - 1) / GridColumns;
-		const size_t selected_row = selected / GridColumns;
-		const size_t max_first_row = total_rows > VisibleRows ? total_rows - VisibleRows : 0;
-		const size_t first_row = std::min(selected_row >= VisibleRows ? selected_row - (VisibleRows - 1) : 0, max_first_row);
-		const size_t first = first_row * GridColumns;
-		constexpr float card_w = 270, card_h = 382;
-		constexpr float grid_x = 346, grid_y = 120, column_step = 372, row_step = 400;
+		// PS2 V12 showcase: hero case, printed disc, game details and horizontal shelf.
+		// All artwork uses the existing decoded-cover cache on the GS thread.
 		const bool disc_view = s_library_view == LibraryView::Disc;
-		if (disc_view)
-		{
-			const bool detected = current.path == PS4Disc::DevicePath;
-			if (ImTextureData* cover = GetCoverTexture(current.cover); detected && cover)
+		const auto draw_cover = [&](const Item& item, float x, float y, float w, float h) {
+			fill(x, y, w, h, IM_COL32(17, 30, 51, 255), 5);
+			if (ImTextureData* art = GetCoverTexture(item.cover))
 			{
-				constexpr float x = 620, y = 230, w = 340, h = 480;
-				fill(x - 10, y - 10, w + 20, h + 20, IM_COL32(10, 37, 67, 210), 14);
-				fill(x, y, w, h, card_bg, 9);
-				draw->AddRect(point(x - 3, y - 3), point(x + w + 3, y + h + 3), accent, 10 * scale, 3.0f * scale, 0);
-				const float fit_scale = std::min((w - 4) / cover->Width, (h - 4) / cover->Height);
-				const float image_w = cover->Width * fit_scale, image_h = cover->Height * fit_scale;
-				const float image_x = x + (w - image_w) * 0.5f, image_y = y + (h - image_h) * 0.5f;
-				draw->AddImage(cover->GetTexRef(), point(image_x, image_y), point(image_x + image_w, image_y + image_h));
-			}
-			else
-				image("menu_disc", 810, 280, 180, 180);
-			text(1030, 340, 30, white, "Physical PS2 DVD");
-			text(1030, 390, 20, muted, detected ? "Disc detected. Press X to start." : "Insert a DVD, then press Triangle to refresh.");
-		}
-		for (size_t slot = 0; !disc_view && slot < VisibleItems && first + slot < s_items.size(); ++slot)
-		{
-			const size_t index = first + slot;
-			const float x = grid_x + static_cast<float>(slot % GridColumns) * column_step;
-			const float y = grid_y + static_cast<float>(slot / GridColumns) * row_step;
-			const bool focused = index == selected;
-			fill(x - (focused ? 11 : 7), y - (focused ? 11 : 7), card_w + (focused ? 22 : 14),
-				card_h + (focused ? 24 : 14), focused ? IM_COL32(10, 37, 67, 210) : IM_COL32(5, 17, 30, 235), 14);
-			fill(x, y, card_w, card_h, focused ? IM_COL32(18, 53, 86, 255) : card_bg, 9);
-			if (focused)
-			{
-				draw->AddRect(point(x - 3, y - 3), point(x + card_w + 3, y + card_h + 3), accent, 10 * scale, 3.0f * scale, 0);
-				draw->AddRect(point(x - 7, y - 7), point(x + card_w + 7, y + card_h + 7), IM_COL32(28, 128, 228, 105), 13 * scale, 2.0f * scale, 0);
-			}
-			// Cover slot: use the user's image from /data/PS4SX2/covers when it
-			// exists. The artwork fills the complete card and the selected title
-			// is shown once in the top bar.
-			fill(x + 2, y + 2, card_w - 4, card_h - 4, art_b[index % 5], 7);
-			if (ImTextureData* cover = GetCoverTexture(s_items[index].cover))
-			{
-				const float box_w = card_w - 4.0f;
-				const float box_h = card_h - 4.0f;
-				const float image_aspect = static_cast<float>(cover->Width) / static_cast<float>(cover->Height);
-				const float box_aspect = box_w / box_h;
-				float image_w = box_w;
-				float image_h = box_h;
-				if (image_aspect > box_aspect)
-					image_h = box_w / image_aspect;
-				else
-					image_w = box_h * image_aspect;
-				const float image_x = x + 2.0f + (box_w - image_w) * 0.5f;
-				const float image_y = y + 2.0f + (box_h - image_h) * 0.5f;
-				draw->AddImage(cover->GetTexRef(), point(image_x, image_y), point(image_x + image_w, image_y + image_h));
+				const float ratio = std::min(w / static_cast<float>(art->Width), h / static_cast<float>(art->Height));
+				const float iw = art->Width * ratio, ih = art->Height * ratio;
+				draw->AddImage(art->GetTexRef(), point(x + (w - iw) * 0.5f, y + (h - ih) * 0.5f),
+					point(x + (w + iw) * 0.5f, y + (h + ih) * 0.5f));
 			}
 			else
 			{
-				draw->AddRectFilledMultiColor(point(x + 2, y + 2), point(x + card_w - 2, y + card_h - 2), art_a[index % 5], art_b[index % 5],
-					IM_COL32(4, 15, 28, 255), art_a[index % 5]);
-				for (int stripe = 0; stripe < 4; ++stripe)
-					draw->AddLine(point(x + 2, y + 80 + stripe * 66), point(x + card_w - 2, y + 42 + stripe * 66), IM_COL32(139, 207, 255, 30), 2.0f * scale);
-				draw->AddCircleFilled(point(x + card_w * 0.5f, y + card_h * 0.5f), 46 * scale,
-					focused ? IM_COL32(56, 151, 224, 235) : IM_COL32(35, 98, 143, 225), 48);
+				draw->AddRectFilledMultiColor(point(x, y), point(x + w, y + h),
+					IM_COL32(34, 74, 123, 255), IM_COL32(8, 21, 45, 255),
+					IM_COL32(8, 21, 45, 255), IM_COL32(24, 48, 85, 255));
+				text(x + 14, y + h * 0.5f, 19, white, fit(item.name, 19, w - 28).c_str());
 			}
-			if (s_items[index].favorite)
-			{
-				draw->AddCircleFilled(point(x + card_w - 25, y + 25), 20 * scale, IM_COL32(3, 15, 28, 225), 32);
-				image("menu_favoritos", x + card_w - 39, y + 11, 28, 28);
-			}
-		}
-		if (total_rows > VisibleRows)
+		};
+		if (!disc_view && !current.path.empty())
 		{
-			constexpr float track_y = grid_y, track_h = card_h * 2.0f + (row_step - card_h);
-			fill(1815, track_y, 5, track_h, IM_COL32(30, 66, 94, 180), 3);
-			const float thumb_h = std::max(96.0f, track_h * static_cast<float>(VisibleRows) / static_cast<float>(total_rows));
-			const float thumb_y = track_y + (track_h - thumb_h) * static_cast<float>(first_row) / static_cast<float>(max_first_row);
-			fill(1815, thumb_y, 5, thumb_h, accent, 3);
+			// The printed disc is circular and uses the same art as the game case.
+			constexpr float case_x = 364, case_y = 158, case_w = 335, case_h = 444;
+			fill(case_x - 12, case_y - 9, case_w + 24, case_h + 18, IM_COL32(4, 8, 18, 255), 9);
+			draw->AddRect(point(case_x - 12, case_y - 9), point(case_x + case_w + 12, case_y + case_h + 9),
+				IM_COL32(75, 135, 193, 255), 9 * scale, 2 * scale);
+			draw_cover(current, case_x, case_y + 37, case_w, case_h - 37);
+			fill(case_x, case_y, case_w, 37, IM_COL32(5, 9, 19, 255), 0);
+			text(case_x + 16, case_y + 28, 23, white, "PlayStation 2");
+			constexpr float dx = 729, dy = 228, diameter = 352;
+			const ImVec2 center = point(dx + diameter * 0.5f, dy + diameter * 0.5f);
+			draw->AddCircleFilled(point(dx + diameter * 0.5f + 6, dy + diameter * 0.5f + 9),
+				(diameter * 0.5f + 3) * scale, IM_COL32(0, 0, 0, 145), 96);
+			draw->AddCircleFilled(center, diameter * 0.5f * scale, IM_COL32(189, 201, 215, 255), 96);
+			if (ImTextureData* art = GetCoverTexture(current.cover))
+			{
+				const float w = static_cast<float>(art->Width), h = static_cast<float>(art->Height);
+				const float side = std::min(w, h);
+				draw->AddImageRounded(art->GetTexRef(), point(dx + 5, dy + 5),
+					point(dx + diameter - 5, dy + diameter - 5),
+					ImVec2((w - side) / (2 * w), (h - side) / (2 * h)),
+					ImVec2((w + side) / (2 * w), (h + side) / (2 * h)),
+					IM_COL32(255, 255, 255, 255), 172 * scale);
+			}
+			draw->AddCircle(center, 172 * scale, IM_COL32(211, 224, 243, 255), 96, 3 * scale);
+			draw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
+			draw->AddCircle(center, 35 * scale, IM_COL32(221, 228, 242, 255), 48, 5 * scale);
+			draw->AddCircleFilled(center, 12 * scale, IM_COL32(2, 9, 21, 255), 32);
+			text(1110, 241, 31, white, fit(current.name, 31, 725).c_str());
+			text(1112, 288, 19, muted, "PLAYSTATION 2  /  GAME DETAILS");
+			if (!current.serial.empty())
+				text(1112, 339, 19, white, ("Serial: " + current.serial).c_str());
+			const size_t dot = current.path.find_last_of('.');
+			const std::string format = dot == std::string::npos ? "Disc image" : current.path.substr(dot + 1);
+			text(1112, 379, 19, white, ("Format: " + format).c_str());
+			struct stat game_stat{};
+			if (stat(current.path.c_str(), &game_stat) == 0 && game_stat.st_size > 0)
+			{
+				char size_text[80];
+				std::snprintf(size_text, sizeof(size_text), "Size: %.2f GB",
+					static_cast<double>(game_stat.st_size) / (1024.0 * 1024.0 * 1024.0));
+				text(1112, 419, 19, white, size_text);
+			}
+			text(1112, 480, 19, accent, "PER-GAME SETTINGS");
+			text(1112, 519, 18, muted, "Resolution / EE profile: available in game");
+			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");
+		}
+		else if (disc_view)
+		{
+			text(390, 270, 34, white, "Physical PS2 DVD");
+			text(390, 324, 20, muted, current.path.empty() ?
+				"Insert a PS2 disc and refresh." : "Disc detected. Press X to start.");
+			draw_cover(current, 880, 180, 295, 412);
+		}
+		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		if (!disc_view)
+		{
+			const size_t shelf_count = std::min(VisibleItems, s_items.size());
+			const size_t first = (selected / VisibleItems) * VisibleItems;
+			constexpr float shelf_x = 306, shelf_y = 663, shelf_step = 200, shelf_w = 183, shelf_h = 248;
+			for (size_t slot = 0; slot < shelf_count && first + slot < s_items.size(); ++slot)
+			{
+				const size_t index = first + slot;
+				const float x = shelf_x + slot * shelf_step;
+				const bool focused = index == selected;
+				if (focused)
+				{
+					fill(x - 5, shelf_y - 9, shelf_w + 10, shelf_h + 18, IM_COL32(15, 84, 157, 255), 5);
+					draw->AddRect(point(x - 5, shelf_y - 9), point(x + shelf_w + 5, shelf_y + shelf_h + 9),
+						accent, 5 * scale, 3 * scale);
+				}
+				draw_cover(s_items[index], x, shelf_y + 24, shelf_w, shelf_h - 24);
+				fill(x, shelf_y, shelf_w, 24, IM_COL32(4, 9, 19, 255), 0);
+				text(x + 7, shelf_y + 19, 15, white, "PlayStation 2");
+				if (s_items[index].favorite)
+					image("menu_favoritos", x + shelf_w - 28, shelf_y + 29, 24, 24);
+			}
 		}
 		if (!s_status.empty())
 			text(346, 936, 17, accent, fit(s_status, 17, 1496).c_str());
