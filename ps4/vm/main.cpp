@@ -142,6 +142,8 @@ static unsigned s_game_menu_selection = 0;
 static unsigned s_game_upscale = 1;
 static unsigned s_max_game_upscale = 1;
 static unsigned s_game_aspect = 1;
+static unsigned s_game_ee_profile = 1;
+static bool s_game_async_audio = false;
 static bool s_game_show_performance_overlay = true;
 static u32 s_game_menu_direction = 0;
 static double s_game_menu_next_repeat = 0.0;
@@ -241,7 +243,7 @@ static void ReadGameResolution()
 static void PublishGameMenu()
 {
 	PS4GameMenu::SetInGameMenu(s_game_menu_open, s_game_menu_selection, s_game_upscale, s_max_game_upscale,
-		s_game_aspect, s_game_show_performance_overlay);
+		s_game_aspect, s_game_show_performance_overlay, s_game_ee_profile, s_game_async_audio);
 }
 
 namespace ImGuiManager
@@ -472,18 +474,18 @@ void VMHostPoll()
 
 	const bool cancel = (pressed & ORBIS_PAD_BUTTON_CIRCLE) != 0 || chord_edge;
 	const bool confirm = (pressed & ORBIS_PAD_BUTTON_CROSS) != 0;
-	if (cancel || (confirm && s_game_menu_selection != 1 && s_game_menu_selection != 2 && s_game_menu_selection != 3))
+	if (cancel || (confirm && s_game_menu_selection != 1 && s_game_menu_selection != 2 && s_game_menu_selection != 3 && s_game_menu_selection != 4 && s_game_menu_selection != 5))
 	{
 		s_game_menu_open = false;
 		s_blocked_pad_buttons |= raw;
 		PS4GameMenu::SetInGameMenu(false, 0);
-		if (!cancel && s_game_menu_selection == 4)
+		if (!cancel && s_game_menu_selection == 6)
 		{
 			s_return_to_main_menu.store(true, std::memory_order_release);
 			ProbeLog("VM stop request: return to main menu\n");
 			VMManager::SetState(VMState::Stopping);
 		}
-		else if (!cancel && s_game_menu_selection == 5)
+		else if (!cancel && s_game_menu_selection == 7)
 		{
 			ProbeLog("VM stop request: exit application\n");
 			VMManager::SetState(VMState::Stopping);
@@ -517,10 +519,10 @@ void VMHostPoll()
 		{
 			s_game_menu_next_repeat = elapsed + (navigation == s_game_menu_direction ? 0.12 : 0.35);
 			if (navigation == ORBIS_PAD_BUTTON_UP)
-				s_game_menu_selection = s_game_menu_selection == 0 ? 5 : s_game_menu_selection - 1;
+				s_game_menu_selection = s_game_menu_selection == 0 ? 7 : s_game_menu_selection - 1;
 			else if (navigation == ORBIS_PAD_BUTTON_DOWN)
-				s_game_menu_selection = (s_game_menu_selection + 1) % 6;
-			else if (s_game_menu_selection == 1 || s_game_menu_selection == 2 || s_game_menu_selection == 3)
+				s_game_menu_selection = (s_game_menu_selection + 1) % 8;
+			else if (s_game_menu_selection == 1 || s_game_menu_selection == 2 || s_game_menu_selection >= 3 && s_game_menu_selection <= 5)
 			{
 				const int delta = navigation == ORBIS_PAD_BUTTON_LEFT ? -1 : 1;
 				if (s_game_menu_selection == 1)
@@ -542,6 +544,18 @@ void VMHostPoll()
 					s_game_aspect = static_cast<unsigned>((static_cast<int>(s_game_aspect) + delta + 5) % 5);
 					ApplyGameAspect(s_game_aspect);
 					ProbeLog("Aspect ratio: index=%u (session only)\n", s_game_aspect);
+				}
+				else if (s_game_menu_selection == 4)
+				{
+					s_game_ee_profile = static_cast<unsigned>((static_cast<int>(s_game_ee_profile) + delta + 3) % 3);
+					const int rate = s_game_ee_profile == 0 ? 0 : (s_game_ee_profile == 1 ? -1 : -2);
+					EmuConfig.Speedhacks.EECycleRate = rate;
+					ProbeLog("EE cycle menu profile=%u rate=%d (session only)\\n", s_game_ee_profile, rate);
+				}
+				else if (s_game_menu_selection == 5)
+				{
+					s_game_async_audio = !s_game_async_audio;
+					ProbeLog("Audio menu selection: %s (restart required)\\n", s_game_async_audio ? "AsyncMix" : "TimeStretch");
 				}
 				else if (delta != 0)
 				{
@@ -616,6 +630,7 @@ static void* RunVM(void*)
 	else if (access("/data/PS4SX2/vm-ee-cycle-mild", F_OK) == 0)
 		ee_cycle_rate = -1;
 	settings->SetIntValue("EmuCore/Speedhacks", "EECycleRate", ee_cycle_rate);
+	s_game_ee_profile = ee_cycle_rate == 0 ? 0u : (ee_cycle_rate == -2 ? 2u : 1u);
 	// (AI-assisted) Fase 3-A reverted: EECycleSkip=1 gave -1.2pp on GoW FMV (32.8ms vs 31.4ms) and no gain on GTA.
 	// Reverted to 0 (opt-in via /data/PS4SX2/vm-ee-cycle-skip only). Needs proper testing.
 	int ee_cycle_skip = 0;
@@ -702,6 +717,7 @@ static void* RunVM(void*)
 	// Select AsyncMix with /data/PS4SX2/vm-audio-async (requires game restart).
 	const bool async_audio = access("/data/PS4SX2/vm-audio-async", F_OK) == 0;
 	settings->SetStringValue("SPU2/Output", "SyncMode", async_audio ? "AsyncMix" : "TimeStretch");
+	s_game_async_audio = async_audio;
 	ProbeLog("Audio sync profile: %s\\n", async_audio ? "AsyncMix" : "TimeStretch");
 	// (AI-assisted) Longer sequences suit slowed audio and need fewer overlap
 	// searches. Leave enough queued audio for the resulting larger bursts.
