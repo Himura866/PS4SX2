@@ -1171,10 +1171,10 @@ namespace PS4GameMenu
 			const char* labels[] = {"Resume game", resolution, aspect_label, performance_label, ee_label, audio_label, "Return to main menu", "Exit application"};
 			const char* descriptions[] = {
 				"Continue emulation from the current frame",
-				"Increase internal rendering quality for this session",
+				"1x prioritizes FPS; 2x balances sharpness; 3x/4x cost more GPU time",
 				"Choose the display shape used by the GS renderer",
-				"Show or hide FPS, speed and timing indicators",
-				"Choose guest EE cycle underclock (may affect game timing)",
+				"Keep FPS and emulation speed visible when comparing settings",
+				"Normal = accurate; Balanced = mild EE underclock; Performance = stronger underclock (may cause slow motion)",
 				"Audio sync selection (takes effect on next game launch)",
 				"Close the VM and reopen the PS4SX2 game library",
 				"Close the VM and exit PS4SX2"};
@@ -1233,7 +1233,7 @@ namespace PS4GameMenu
 			char hint[128];
 			std::snprintf(hint, sizeof(hint), "Left/Right: change value   |   Resolution range: 1x-%ux", max_upscale);
 		draw->AddText(font, 17.0f * scale, point(138, 756), muted, hint);
-		draw->AddText(font, 17.0f * scale, point(138, 786), muted, "3x and above is experimental and intended for PS4 Pro only.");
+		draw->AddText(font, 17.0f * scale, point(138, 786), muted, "For demanding games (Prince of Persia / Downhill), test 1x before 2x-4x.");
 		draw->AddText(font, 17.0f * scale, point(138, 816), muted, "Up/Down: select   Left/Right: change   X: confirm   Circle: resume");
 			image("controle_x", 1480, 904, 30, 30);
 			draw->AddText(font, 20.0f * scale, point(1524, 909), white, "Confirm");
