@@ -1432,7 +1432,8 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);\n\t\tfill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		fill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
 		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
 		{
