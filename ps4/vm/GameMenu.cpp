@@ -1412,11 +1412,11 @@ namespace PS4GameMenu
 			}
 			draw->AddCircle(center, 172 * scale, IM_COL32(50, 176, 255, 255), 96, 3 * scale);
 			if (!current.cover)
-	\t\t{
-	\t\t\tcentered_text(dx + diameter * 0.5f, dy + 145, 23, white, "PLAYSTATION 2");
-	\t\t\tcentered_text(dx + diameter * 0.5f, dy + 235, 17, muted, "NO DISC ART");
-	\t\t}
-	\t\tdraw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
+			{
+				centered_text(dx + diameter * 0.5f, dy + 145, 23, white, "PLAYSTATION 2");
+				centered_text(dx + diameter * 0.5f, dy + 235, 17, muted, "NO DISC ART");
+			}
+			draw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
 			draw->AddCircle(center, 35 * scale, IM_COL32(221, 228, 242, 255), 48, 5 * scale);
 			draw->AddCircleFilled(center, 12 * scale, IM_COL32(2, 9, 21, 255), 32);
 			text(1100, 224, 31, white, fit(current.name, 31, 440).c_str());
