@@ -574,6 +574,23 @@ void VMHostPoll()
 			s_game_menu_direction = 0;
 			return;
 		}
+		// Square cycles conservative per-game presets while the VM is paused.
+		// Never promise an FPS increase: EE underclock can slow some games down.
+		if ((raw & ORBIS_PAD_BUTTON_SQUARE) && !(s_previous_host_buttons & ORBIS_PAD_BUTTON_SQUARE))
+		{
+			static unsigned preset = 0;
+			preset = (preset + 1) % 3;
+			const unsigned target = preset == 1 ? std::min(2u, s_max_game_upscale) : 1u;
+			s_game_ee_profile = preset == 2 ? 2u : 1u;
+			EmuConfig.Speedhacks.EECycleRate = s_game_ee_profile == 2 ? -2 : -1;
+			EmuConfig.GS.UpscaleMultiplier = static_cast<float>(target);
+			MTGS::ApplySettings();
+			ReadGameResolution();
+			SavePerGameProfile();
+			PublishGameMenu();
+			ProbeLog("Per-game preset: %u, resolution=%ux, EE=%u\\n",
+				preset, s_game_upscale, s_game_ee_profile);
+		}
 		u32 navigation = 0;
 		if (raw & ORBIS_PAD_BUTTON_UP || analog_up)
 			navigation = ORBIS_PAD_BUTTON_UP;
