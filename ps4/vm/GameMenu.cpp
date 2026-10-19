@@ -1310,11 +1310,11 @@ namespace PS4GameMenu
 		else
 		{
 			draw->AddRectFilledMultiColor(point(0, 0), point(1920, 1080),
-				IM_COL32(9, 31, 55, 255), IM_COL32(2, 14, 29, 255),
-				IM_COL32(4, 18, 34, 255), IM_COL32(1, 10, 21, 255));
+				IM_COL32(18, 19, 26, 255), IM_COL32(5, 7, 12, 255),
+				IM_COL32(9, 11, 17, 255), IM_COL32(2, 3, 8, 255));
 		}
-		fill(0, 0, 286, 1080, IM_COL32(3, 15, 28, 168), 0);
-		fill(286, 0, 1634, 92, IM_COL32(4, 19, 34, 220), 0);
+		fill(0, 0, 286, 1080, IM_COL32(5, 6, 11, 175), 0);
+		fill(286, 0, 1634, 92, IM_COL32(6, 7, 14, 170), 0);
 		draw->AddLine(point(286, 92), point(1920, 92), IM_COL32(38, 103, 157, 110), 1.0f * scale);
 		image("menu_logo", 32, 0, 220, 73);
 		centered_text(142, 82, 11, muted, "PS4SX2 V12  /  PLAYSTATION 2");
@@ -1399,7 +1399,7 @@ namespace PS4GameMenu
 			const ImVec2 center = point(dx + diameter * 0.5f, dy + diameter * 0.5f);
 			draw->AddCircleFilled(point(dx + diameter * 0.5f + 6, dy + diameter * 0.5f + 9),
 				(diameter * 0.5f + 3) * scale, IM_COL32(0, 0, 0, 145), 96);
-			draw->AddCircleFilled(center, diameter * 0.5f * scale, IM_COL32(16, 43, 86, 255), 96);
+			draw->AddCircleFilled(center, diameter * 0.5f * scale, IM_COL32(31, 33, 40, 255), 96);
 			if (ImTextureData* art = GetCoverTexture(current.cover))
 			{
 				const float w = static_cast<float>(art->Width), h = static_cast<float>(art->Height);
@@ -1410,15 +1410,15 @@ namespace PS4GameMenu
 					ImVec2((w + side) / (2 * w), (h + side) / (2 * h)),
 					IM_COL32(255, 255, 255, 255), 172 * scale);
 			}
-			draw->AddCircle(center, 172 * scale, IM_COL32(50, 176, 255, 255), 96, 3 * scale);
+			draw->AddCircle(center, 172 * scale, IM_COL32(185, 191, 203, 255), 96, 2 * scale);
 			if (!current.cover)
 			{
 				centered_text(dx + diameter * 0.5f, dy + 145, 23, white, "PLAYSTATION 2");
 				centered_text(dx + diameter * 0.5f, dy + 235, 17, muted, "NO DISC ART");
 			}
-			draw->AddCircleFilled(center, 35 * scale, IM_COL32(9, 18, 36, 255), 48);
-			draw->AddCircle(center, 35 * scale, IM_COL32(221, 228, 242, 255), 48, 5 * scale);
-			draw->AddCircleFilled(center, 12 * scale, IM_COL32(2, 9, 21, 255), 32);
+			draw->AddCircleFilled(center, 25 * scale, IM_COL32(24, 26, 31, 255), 48);
+			draw->AddCircle(center, 25 * scale, IM_COL32(210, 213, 220, 255), 48, 3 * scale);
+			draw->AddCircleFilled(center, 11 * scale, IM_COL32(1, 3, 7, 255), 32);
 			text(1100, 224, 31, white, fit(current.name, 31, 440).c_str());
 			text(1102, 268, 19, muted, "PLAYSTATION 2  /  GAME DETAILS");
 			if (!current.serial.empty())
@@ -1452,7 +1452,7 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 160), 0);
+		fill(286, 627, 1634, 331, IM_COL32(4, 5, 10, 145), 0);
 		fill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
 		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
