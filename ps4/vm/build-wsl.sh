@@ -23,8 +23,9 @@ cmake -S "$stage/ps4/vm" -B "$build" -G Ninja \
   -DPS4_MESA_BUILD="$mesa" \
   -DPCSX2_VM_JIT="${PCSX2_VM_JIT:-ON}" \
   -DPCSX2_VM_FASTMEM="${PCSX2_VM_FASTMEM:-OFF}" \
-  -DPCSX2_VM_MTVU="${PCSX2_VM_MTVU:-ON}"
-echo "PS4SX2: JIT=${PCSX2_VM_JIT:-ON}, FASTMEM=${PCSX2_VM_FASTMEM:-OFF}, MTVU=${PCSX2_VM_MTVU:-ON}, jobs=$jobs"
+  -DPCSX2_VM_MTVU="${PCSX2_VM_MTVU:-ON}" \
+  -DPCSX2_VM_AGGRESSIVE_OPT="${PCSX2_VM_AGGRESSIVE_OPT:-OFF}"
+echo "PS4SX2: JIT=${PCSX2_VM_JIT:-ON}, FASTMEM=${PCSX2_VM_FASTMEM:-OFF}, MTVU=${PCSX2_VM_MTVU:-ON}, O3=${PCSX2_VM_AGGRESSIVE_OPT:-OFF}, jobs=$jobs"
 cmake --build "$build" --parallel "$jobs"
 for artifact in "$build/vm_boot" "$build/vm_boot_eboot/eboot.bin" "$build/vm_boot_eboot/vm_boot.oelf"; do
   if [[ ! -s "$artifact" ]]; then
