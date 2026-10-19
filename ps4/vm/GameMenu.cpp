@@ -223,6 +223,8 @@ namespace PS4GameMenu
 			// replacing the installed PKG. Fall back to packaged pic1.png.
 			auto library_background = LoadImageFile("/data/PS4SX2/menu-background.png", "library background", false);
 			if (!library_background)
+				library_background = LoadImageFile("/app0/resources/ui/menu-background.png", "bundled library background", false);
+			if (!library_background)
 				library_background = s_ui_images.back().source;
 			s_ui_images.push_back({"library_background", std::move(library_background)});
 			ProbeLog("Game menu: loaded %zu UI button assets\n", s_ui_images.size());
