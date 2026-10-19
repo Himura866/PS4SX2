@@ -1389,14 +1389,7 @@ namespace PS4GameMenu
 			const size_t dot = current.path.find_last_of('.');
 			const std::string format = dot == std::string::npos ? "Disc image" : current.path.substr(dot + 1);
 			text(1112, 379, 19, white, ("Format: " + format).c_str());
-			struct stat game_stat{};
-			if (stat(current.path.c_str(), &game_stat) == 0 && game_stat.st_size > 0)
-			{
-				char size_text[80];
-				std::snprintf(size_text, sizeof(size_text), "Size: %.2f GB",
-					static_cast<double>(game_stat.st_size) / (1024.0 * 1024.0 * 1024.0));
-				text(1112, 419, 19, white, size_text);
-			}
+			text(1112, 419, 19, muted, "Local PS2 game image");
 			text(1112, 480, 19, accent, "PER-GAME SETTINGS");
 			text(1112, 519, 18, muted, "Resolution / EE profile: available in game");
 			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");
