@@ -19,6 +19,7 @@ $contentId = 'IV0000-PCSX20007_00-PS4SX2EMU0000001'
 $resources = @('sce_sys/about/right.sprx', 'sce_module/libc.prx', 'sce_module/libSceFios2.prx')
 $iconSource = Join-Path $PSScriptRoot 'assets/sce_sys/icon0.png'
 $pic1Source = Join-Path $PSScriptRoot 'assets/sce_sys/pic1.png'
+$menuBackgroundSource = Join-Path $PSScriptRoot 'assets/ui-png/menu-background.png'
 $shaderRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../bin/resources/shaders'))
 $shaderFiles = @(Get-ChildItem -LiteralPath (Join-Path $shaderRoot 'vulkan'), (Join-Path $shaderRoot 'common') -File -Recurse)
 if ($shaderFiles.Count -eq 0) { throw 'PCSX2 shader resources are missing.' }
@@ -44,6 +45,15 @@ $resources += 'sce_sys/icon0.png'
 $pic1Destination = Join-Path $packageDir 'sce_sys/pic1.png'
 Copy-Item -LiteralPath $pic1Source -Destination $pic1Destination
 $resources += 'sce_sys/pic1.png'
+# Optional real library background. Only ship it when the PNG is present.
+# The UI falls back to the normal pic1.png if no dedicated asset is supplied.
+if (Test-Path -LiteralPath $menuBackgroundSource) {
+  $menuBackgroundDestination = Join-Path $packageDir 'resources/ui/menu-background.png'
+  New-Item -ItemType Directory -Force (Split-Path -Parent $menuBackgroundDestination) | Out-Null
+  Copy-Item -LiteralPath $menuBackgroundSource -Destination $menuBackgroundDestination
+  $resources += 'resources/ui/menu-background.png'
+  Write-Host 'Bundled dedicated library background: resources/ui/menu-background.png'
+}
 $resources += 'resources/fonts/Gontserrat-Regular.ttf'
 $packageFiles = @('eboot.bin', 'sce_sys/param.sfo') + $resources
 foreach ($shaderFile in $shaderFiles) {
