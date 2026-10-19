@@ -1392,7 +1392,8 @@ namespace PS4GameMenu
 			text(1112, 419, 19, muted, "Local PS2 game image");
 			text(1112, 480, 19, accent, "PER-GAME SETTINGS");
 			text(1112, 519, 18, muted, "Resolution / EE profile: available in game");
-			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");\n\t\t\ttext(1112, 595, 17, accent, "Pause game + Square: cycle performance presets");
+			text(1112, 558, 18, muted, "Memory Card: PS2 virtual card");
+			text(1112, 595, 17, accent, "Pause game + Square: cycle performance presets");
 		}
 		else if (disc_view)
 		{
@@ -1402,7 +1403,8 @@ namespace PS4GameMenu
 			draw_cover(current, 880, 180, 295, 412);
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
-		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);\n\t\tdraw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
+		fill(286, 627, 1634, 331, IM_COL32(3, 11, 25, 220), 0);
+		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
 		{
 			const size_t shelf_count = std::min(VisibleItems, s_items.size());
