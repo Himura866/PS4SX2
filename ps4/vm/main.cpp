@@ -696,7 +696,13 @@ static void* RunVM(void*)
 	// (AI-assisted) The Orbis Cubeb slot routes to native PS4 AudioOut.
 	const bool audio_enabled = access("/data/PS4SX2/vm-no-audio", F_OK) != 0;
 	settings->SetStringValue("SPU2/Output", "Backend", audio_enabled ? "Cubeb" : "Null");
-	settings->SetStringValue("SPU2/Output", "SyncMode", "TimeStretch");
+	// Audio sync profiles for diagnosing slow-motion audio on PS4.
+	// TimeStretch preserves pitch when the guest is slow; AsyncMix prioritizes
+	// continuous output but cannot make a sub-100% guest run at full speed.
+	// Select AsyncMix with /data/PS4SX2/vm-audio-async (requires game restart).
+	const bool async_audio = access("/data/PS4SX2/vm-audio-async", F_OK) == 0;
+	settings->SetStringValue("SPU2/Output", "SyncMode", async_audio ? "AsyncMix" : "TimeStretch");
+	ProbeLog("Audio sync profile: %s\\n", async_audio ? "AsyncMix" : "TimeStretch");
 	// (AI-assisted) Longer sequences suit slowed audio and need fewer overlap
 	// searches. Leave enough queued audio for the resulting larger bursts.
 	// Needs proper testing with speech, transitions and pause on the console.
