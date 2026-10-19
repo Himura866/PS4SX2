@@ -219,6 +219,12 @@ namespace PS4GameMenu
 			// (AI-assisted) Reuse the package background at runtime so the PS4 tile
 			// and emulator loading screen always show the exact same artwork.
 			s_ui_images.push_back({"loading_background", LoadImageFile("/app0/sce_sys/pic1.png", "loading background")});
+			// Allow a custom 16:9 library backdrop copied by FTP, without
+			// replacing the installed PKG. Fall back to packaged pic1.png.
+			auto library_background = LoadImageFile("/data/PS4SX2/menu-background.png", "library background", false);
+			if (!library_background)
+				library_background = FindUiAsset("loading_background");
+			s_ui_images.push_back({"library_background", std::move(library_background)});
 			ProbeLog("Game menu: loaded %zu UI button assets\n", s_ui_images.size());
 		}
 
