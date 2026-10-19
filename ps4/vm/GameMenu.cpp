@@ -1320,7 +1320,12 @@ namespace PS4GameMenu
 		centered_text(142, 82, 11, muted, "PS4SX2 V12  /  PLAYSTATION 2");
 		// Centered channel signature: the crown and luminous strokes are vector UI,
 		// so no per-frame image decoding or GPU texture uploads are needed.
+		// Lightweight animation: alpha pulses only, no new textures or allocations.
+		const float glow_phase = static_cast<float>(ImGui::GetTime()) * 1.25f;
+		const float glow = 0.5f + 0.5f * std::sin(glow_phase);
 		const ImU32 crown_gold = IM_COL32(255, 198, 76, 255);
+		const ImU32 neon_glow = IM_COL32(48, 163, 255, static_cast<int>(95 + 105 * glow));
+		draw->AddLine(point(805, 79), point(1090, 79), neon_glow, (2.0f + 1.5f * glow) * scale);
 		fill(700, 7, 565, 77, IM_COL32(4, 17, 41, 210), 12);
 		draw->AddRect(point(700, 7), point(1265, 84), IM_COL32(37, 140, 255, 195), 12 * scale, 1.5f * scale);
 		const ImVec2 crown_points[] = {point(728, 51), point(718, 20), point(741, 36),
@@ -1410,7 +1415,10 @@ namespace PS4GameMenu
 					ImVec2((w + side) / (2 * w), (h + side) / (2 * h)),
 					IM_COL32(255, 255, 255, 255), 172 * scale);
 			}
+			// Printed-disc edge: neutral silver instead of the old blue center.
 			draw->AddCircle(center, 172 * scale, IM_COL32(185, 191, 203, 255), 96, 2 * scale);
+			draw->AddCircle(center, 168 * scale, IM_COL32(236, 240, 249, 70), 96, 1.0f * scale);
+			draw->AddCircle(center, 164 * scale, IM_COL32(15, 19, 26, 120), 96, 1.0f * scale);
 			if (!current.cover)
 			{
 				centered_text(dx + diameter * 0.5f, dy + 145, 23, white, "PLAYSTATION 2");
@@ -1453,7 +1461,7 @@ namespace PS4GameMenu
 		}
 		// Horizontal shelf with selected case highlighted, like the PS2 mockup.
 		fill(286, 627, 1634, 331, IM_COL32(4, 5, 10, 145), 0);
-		fill(300, 635, 1600, 8, IM_COL32(11, 82, 160, 140), 0);
+		fill(300, 635, 1600, 3, IM_COL32(35, 127, 207, 110), 0);
 		draw->AddLine(point(286, 627), point(1920, 627), IM_COL32(22, 141, 242, 200), 2 * scale);
 		if (!disc_view)
 		{
@@ -1467,7 +1475,9 @@ namespace PS4GameMenu
 				const bool focused = index == selected;
 				if (focused)
 				{
-					fill(x - 3, shelf_y - 5, shelf_w + 6, shelf_h + 10, IM_COL32(10, 65, 145, 180), 3);
+					// Narrow selected-game halo; no bulky tile behind the cover.
+					fill(x - 3, shelf_y - 5, shelf_w + 6, shelf_h + 10,
+						IM_COL32(10, 65, 145, static_cast<int>(105 + 60 * glow)), 3);
 					draw->AddRect(point(x - 3, shelf_y - 5), point(x + shelf_w + 3, shelf_y + shelf_h + 5),
 						accent, 3 * scale, 2 * scale);
 				}
