@@ -307,7 +307,7 @@ void Host::OnPerformanceMetricsUpdated()
 		else
 			suspect = "mixed_or_unsampled";
 	}
-	ProbeLog("PS4SX2 perf triage: speed_pct=%.1f candidate=%s measured_EE_ms=%.2f measured_GS_ms=%.2f measured_VU1_ms=%.2f measured_GPU_ms=%.2f diagnostic_only=yes\\n",
+	ProbeLog("PS4SX2 perf triage: speed_pct=%.1f candidate=%s measured_EE_ms=%.2f measured_GS_ms=%.2f measured_VU1_ms=%.2f measured_GPU_ms=%.2f diagnostic_only=yes\n",
 		static_cast<double>(speed), suspect, ee_ms, gs_ms, vu_ms, static_cast<double>(gpu_ms));
 	PS4IPUProfile::LogInterval(profile_interval);
 	PS4EEEventProfile::LogInterval(profile_interval);
