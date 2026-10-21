@@ -749,7 +749,8 @@ static void* RunVM(void*)
 	// (AI-assisted) Hardware palette conversion, frame preloading, and partial invalidation bypass
 	// reduce CPU stalls in 1x/2x upscale; needs proper testing.
 	settings->SetBoolValue("EmuCore/GS", "paltex", true);
-	settings->SetBoolValue("EmuCore/GS", "preload_frame_with_gs_data", true);
+	settings->SetBoolValue("EmuCore/GS", "preload_frame_with_gs_data",
+		access("/data/PS4SX2/vm-no-gs-preload", F_OK) != 0);
 	// (AI-assisted) Let per-game GameDB HW fixes apply (autoFlush, halfPixelOffset, etc) to fix
 	// shadows/post-processing without forcing manual overrides. GTA SA (SLUS-20946) needs
 	// autoFlush=1 + halfPixelOffset=5. DisablePartialInvalidation=true stays as PS4 perf
@@ -759,7 +760,9 @@ static void* RunVM(void*)
 	// (AI-assisted) Triple VideoOut (ImageCount=3) with VsyncQueueSize=3 queues 2 extra frames
 	// and can show stale buffers as ghosting. Use 2 (upstream default) to reduce latency
 	// and present stalls; vsyncq was 0..1 in baseline. Needs proper testing.
-	settings->SetIntValue("EmuCore/GS", "VsyncQueueSize", 2);
+	settings->SetIntValue("EmuCore/GS", "VsyncQueueSize",
+		access("/data/PS4SX2/vm-frame-queue-1", F_OK) == 0 ? 1 :
+		access("/data/PS4SX2/vm-frame-queue-3", F_OK) == 0 ? 3 : 2);
 	// (AI-assisted) Skip the PS2 BIOS animation and fast-forward only the
 	// emulator's boot phase. The game's own logos and loading still run normally.
 	bool fast_boot = access("/data/PS4SX2/vm-no-fast-boot", F_OK) != 0;
@@ -895,6 +898,38 @@ static void* RunVM(void*)
 			VMManager::Internal::CPUThreadShutdown();
 			return nullptr;
 		}
+	}
+	// The launcher can change these persistent settings after CPU thread setup.
+	// Reload the base layer before booting the chosen PS2 image, not one game
+	// later. PS1 compatibility overrides are still applied below.
+	if (s_use_vulkan_selector)
+	{
+		const int launch_ee_rate = access("/data/PS4SX2/vm-ee-cycle-normal", F_OK) == 0 ? 0 :
+			access("/data/PS4SX2/vm-ee-cycle-underclock", F_OK) == 0 ? -2 : -1;
+		settings->SetIntValue("EmuCore/Speedhacks", "EECycleRate", launch_ee_rate);
+		settings->SetIntValue("EmuCore/Speedhacks", "EECycleSkip",
+			access("/data/PS4SX2/vm-ee-cycle-skip", F_OK) == 0 ? 1 : 0);
+		settings->SetBoolValue("EmuCore/Speedhacks", "fastCDVD",
+			access("/data/PS4SX2/vm-fast-cdvd", F_OK) == 0 &&
+			access("/data/PS4SX2/vm-no-fast-cdvd", F_OK) != 0);
+		settings->SetBoolValue("EmuCore/GS", "DisableShaderCache",
+			access("/data/PS4SX2/vm-no-shader-cache", F_OK) == 0);
+		settings->SetBoolValue("EmuCore/GS", "preload_frame_with_gs_data",
+			access("/data/PS4SX2/vm-no-gs-preload", F_OK) != 0);
+		const int queue = access("/data/PS4SX2/vm-frame-queue-1", F_OK) == 0 ? 1 :
+			access("/data/PS4SX2/vm-frame-queue-3", F_OK) == 0 ? 3 : 2;
+		settings->SetIntValue("EmuCore/GS", "VsyncQueueSize", queue);
+		fast_boot = access("/data/PS4SX2/vm-no-fast-boot", F_OK) != 0;
+		settings->SetBoolValue("EmuCore", "EnableFastBoot", fast_boot);
+		settings->SetBoolValue("EmuCore", "EnableFastBootFastForward", fast_boot);
+		const bool launch_async_audio = access("/data/PS4SX2/vm-audio-async", F_OK) == 0;
+		settings->SetStringValue("SPU2/Output", "SyncMode", launch_async_audio ? "AsyncMix" : "TimeStretch");
+		s_game_async_audio = launch_async_audio;
+		s_game_ee_profile = launch_ee_rate == 0 ? 0u : (launch_ee_rate == -2 ? 2u : 1u);
+		VMManager::ApplySettings();
+		ProbeLog("Launcher settings applied before boot: EE=%d skip=%d frame_queue=%d fastboot=%d async_audio=%d\n",
+			launch_ee_rate, access("/data/PS4SX2/vm-ee-cycle-skip", F_OK) == 0 ? 1 : 0,
+			queue, fast_boot ? 1 : 0, launch_async_audio ? 1 : 0);
 	}
 	if (platform == GamePlatform::PS1)
 	{
