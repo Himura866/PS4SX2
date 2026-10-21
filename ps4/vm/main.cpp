@@ -518,13 +518,11 @@ void VMHostPoll()
 		ProbeLog("pause step: SetPaused done dur_ms=%.2f state=%d\n",
 			Common::Timer::ConvertValueToMilliseconds(Common::Timer::GetCurrentValue() - setpause_t0),
 			static_cast<int>(VMManager::GetState()));
-		ProbeLog("pause step: FlushPipelineCache queue begin vsyncq=%d\n", MTGS::GetCurrentVsyncQueueSize());
-		MTGS::RunOnGSThread([]() {
-			ProbeLog("GS: FlushPipelineCache begin\n");
-			if (g_vulkan_shader_cache)
-				g_vulkan_shader_cache->FlushPipelineCache();
-			ProbeLog("GS: FlushPipelineCache end\n");
-		});
+		// Do not flush the Vulkan pipeline cache when opening the pause menu.
+		// Disk I/O and a GS-thread flush on this latency-sensitive path can stall
+		// the overlay or leave the UI unresponsive. Normal cache persistence
+		// remains the responsibility of the renderer shutdown path.
+		ProbeLog("pause step: deferred shader pipeline cache flush\n");
 		ProbeLog("pause step: ReadGameResolution begin\n");
 		const auto readres_t0 = Common::Timer::GetCurrentValue();
 		ReadGameResolution();
