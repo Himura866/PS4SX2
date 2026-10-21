@@ -287,6 +287,28 @@ void Host::OnPerformanceMetricsUpdated()
 		vu_usage, PerformanceMetrics::GetVUThreadAverageTime(),
 		(ee_usage + gs_usage + vu_usage > 0.0) ? "samples" : "no_samples",
 		PerformanceMetrics::GetGPUUsage(), gpu_ms, gpu_ms > 0.0f ? "samples" : "no_samples");
+	// Diagnostic only: host thread times are overlapping and cannot be summed.
+	// A classification is a hypothesis, not proof of a CPU/GPU bottleneck.
+	const float speed = PerformanceMetrics::GetSpeed();
+	const double ee_ms = PerformanceMetrics::GetCPUThreadAverageTime();
+	const double gs_ms = PerformanceMetrics::GetGSThreadAverageTime();
+	const double vu_ms = PerformanceMetrics::GetVUThreadAverageTime();
+	const char* suspect = "unclassified";
+	if (speed < 95.0f)
+	{
+		if (ee_ms > gs_ms * 1.25 && ee_ms > vu_ms * 1.25 && ee_ms > 0.0)
+			suspect = "EE_or_host_CPU";
+		else if (gs_ms > ee_ms * 1.25 && gs_ms > vu_ms * 1.25 && gs_ms > 0.0)
+			suspect = "GS_or_driver";
+		else if (vu_ms > ee_ms * 1.25 && vu_ms > gs_ms * 1.25 && vu_ms > 0.0)
+			suspect = "VU1";
+		else if (gpu_ms > 0.0f && gpu_ms >= PerformanceMetrics::GetAverageFrameTime() * 0.80f)
+			suspect = "GPU_possible";
+		else
+			suspect = "mixed_or_unsampled";
+	}
+	ProbeLog("PS4SX2 perf triage: speed_pct=%.1f candidate=%s measured_EE_ms=%.2f measured_GS_ms=%.2f measured_VU1_ms=%.2f measured_GPU_ms=%.2f diagnostic_only=yes\\n",
+		static_cast<double>(speed), suspect, ee_ms, gs_ms, vu_ms, static_cast<double>(gpu_ms));
 	PS4IPUProfile::LogInterval(profile_interval);
 	PS4EEEventProfile::LogInterval(profile_interval);
 	PS4GSProfile::LogInterval(profile_interval);
