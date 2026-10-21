@@ -144,6 +144,8 @@ static unsigned s_game_upscale = 1;
 static unsigned s_max_game_upscale = 1;
 static unsigned s_game_aspect = 1;
 static unsigned s_game_ee_profile = 1;
+static unsigned s_game_ee_skip = 0;
+static unsigned s_game_vsync_queue = 2;
 static bool s_game_async_audio = false;
 static std::string s_per_game_profile_path;
 static void ApplyGameAspect(unsigned aspect);
@@ -175,7 +177,9 @@ static void SavePerGameProfile()
     FILE* file = std::fopen(temp.c_str(), "w");
     if (!file)
         return;
-    std::fprintf(file, "PS4SX2_PROFILE_V1 %u %u %u\\n", s_game_upscale, s_game_aspect, s_game_ee_profile);
+    std::fprintf(file, "PS4SX2_PROFILE_V2 %u %u %u %u %u %u\n",
+        s_game_upscale, s_game_aspect, s_game_ee_profile, s_game_ee_skip,
+        s_game_vsync_queue, s_game_async_audio ? 1u : 0u);
     const bool written = std::fflush(file) == 0 && std::ferror(file) == 0;
     const bool closed = std::fclose(file) == 0;
     if (written && closed)
@@ -187,29 +191,60 @@ static void SavePerGameProfile()
         unlink(temp.c_str());
 }
 
+struct PS4SavedGameOptions {
+    unsigned resolution = 1, aspect = 1, ee = 1, ee_skip = 0, frame_queue = 2, audio = 0;
+};
+static bool ReadGameOptions(PS4SavedGameOptions& o)
+{
+    if (s_per_game_profile_path.empty()) return false;
+    FILE* f = std::fopen(s_per_game_profile_path.c_str(), "r");
+    if (!f) return false;
+    o.audio = s_game_async_audio ? 1u : 0u;
+    char version[32] = {};
+    const int n = std::fscanf(f, "%31s %u %u %u %u %u %u", version,
+        &o.resolution, &o.aspect, &o.ee, &o.ee_skip, &o.frame_queue, &o.audio);
+    std::fclose(f);
+    if (!((n == 4 && std::strcmp(version, "PS4SX2_PROFILE_V1") == 0) ||
+          (n == 7 && std::strcmp(version, "PS4SX2_PROFILE_V2") == 0)))
+        return false;
+    return o.resolution >= 1 && o.resolution <= 4 && o.aspect <= 4 &&
+        o.ee <= 2 && o.ee_skip <= 1 && o.frame_queue >= 1 &&
+        o.frame_queue <= 3 && o.audio <= 1;
+}
+// Timing-critical settings are loaded before VM initialization. Changing
+// a pause-menu option saves it for the next launch, without live clock hacks.
+static void LoadPerGameBootOptions(SettingsInterface& settings)
+{
+    PS4SavedGameOptions o;
+    if (!ReadGameOptions(o)) return;
+    s_game_ee_profile = o.ee;
+    s_game_ee_skip = o.ee_skip;
+    s_game_vsync_queue = o.frame_queue;
+    s_game_async_audio = o.audio != 0;
+    settings.SetIntValue("EmuCore/Speedhacks", "EECycleRate",
+        o.ee == 0 ? 0 : (o.ee == 1 ? -1 : -2));
+    settings.SetIntValue("EmuCore/Speedhacks", "EECycleSkip", o.ee_skip);
+    settings.SetIntValue("EmuCore/GS", "VsyncQueueSize", o.frame_queue);
+    settings.SetStringValue("SPU2/Output", "SyncMode",
+        o.audio ? "AsyncMix" : "TimeStretch");
+    ProbeLog("Game boot options: EE=%u skip=%u frame_queue=%u audio=%u\n",
+        o.ee, o.ee_skip, o.frame_queue, o.audio);
+}
 static void LoadPerGameProfile()
 {
-    if (s_per_game_profile_path.empty())
-        return;
-    FILE* file = std::fopen(s_per_game_profile_path.c_str(), "r");
-    if (!file)
-        return;
-    char version[32] = {};
-    unsigned resolution = 0, aspect = 0, ee = 0;
-    const int fields = std::fscanf(file, "%31s %u %u %u", version, &resolution, &aspect, &ee);
-    std::fclose(file);
-    if (fields != 4 || std::strcmp(version, "PS4SX2_PROFILE_V1") != 0 ||
-        resolution < 1 || resolution > 4 || aspect > 4 || ee > 2)
-        return;
-    s_game_upscale = std::min(resolution, s_max_game_upscale);
-    s_game_aspect = aspect;
-    s_game_ee_profile = ee;
+    PS4SavedGameOptions o;
+    if (!ReadGameOptions(o)) return;
+    s_game_upscale = std::min(o.resolution, s_max_game_upscale);
+    s_game_aspect = o.aspect;
+    s_game_ee_profile = o.ee;
+    s_game_ee_skip = o.ee_skip;
+    s_game_vsync_queue = o.frame_queue;
+    s_game_async_audio = o.audio != 0;
     EmuConfig.GS.UpscaleMultiplier = static_cast<float>(s_game_upscale);
     MTGS::ApplySettings();
     ApplyGameAspect(s_game_aspect);
-    EmuConfig.Speedhacks.EECycleRate = ee == 0 ? 0 : (ee == 1 ? -1 : -2);
-    ProbeLog("Per-game ISO profile loaded: resolution=%u aspect=%u EE=%u\\n",
-        s_game_upscale, s_game_aspect, s_game_ee_profile);
+    ProbeLog("Loaded game profile: scale=%u aspect=%u EE=%u skip=%u queue=%u audio=%u\n",
+        s_game_upscale, s_game_aspect, o.ee, o.ee_skip, o.frame_queue, o.audio);
 }
 
 static bool s_game_show_performance_overlay = true;
@@ -311,7 +346,8 @@ static void ReadGameResolution()
 static void PublishGameMenu()
 {
 	PS4GameMenu::SetInGameMenu(s_game_menu_open, s_game_menu_selection, s_game_upscale, s_max_game_upscale,
-		s_game_aspect, s_game_show_performance_overlay, s_game_ee_profile, s_game_async_audio);
+		s_game_aspect, s_game_show_performance_overlay, s_game_ee_profile, s_game_async_audio,
+		s_game_ee_skip, s_game_vsync_queue);
 }
 
 namespace ImGuiManager
@@ -540,18 +576,18 @@ void VMHostPoll()
 
 	const bool cancel = (pressed & ORBIS_PAD_BUTTON_CIRCLE) != 0 || chord_edge;
 	const bool confirm = (pressed & ORBIS_PAD_BUTTON_CROSS) != 0;
-	if (cancel || (confirm && s_game_menu_selection != 1 && s_game_menu_selection != 2 && s_game_menu_selection != 3 && s_game_menu_selection != 4 && s_game_menu_selection != 5))
+	if (cancel || (confirm && !(s_game_menu_selection >= 1 && s_game_menu_selection <= 7)))
 	{
 		s_game_menu_open = false;
 		s_blocked_pad_buttons |= raw;
 		PS4GameMenu::SetInGameMenu(false, 0);
-		if (!cancel && s_game_menu_selection == 6)
+		if (!cancel && s_game_menu_selection == 8)
 		{
 			s_return_to_main_menu.store(true, std::memory_order_release);
 			ProbeLog("VM stop request: return to main menu\n");
 			VMManager::SetState(VMState::Stopping);
 		}
-		else if (!cancel && s_game_menu_selection == 7)
+		else if (!cancel && s_game_menu_selection == 9)
 		{
 			ProbeLog("VM stop request: exit application\n");
 			VMManager::SetState(VMState::Stopping);
@@ -602,10 +638,10 @@ void VMHostPoll()
 		{
 			s_game_menu_next_repeat = elapsed + (navigation == s_game_menu_direction ? 0.12 : 0.35);
 			if (navigation == ORBIS_PAD_BUTTON_UP)
-				s_game_menu_selection = s_game_menu_selection == 0 ? 7 : s_game_menu_selection - 1;
+				s_game_menu_selection = s_game_menu_selection == 0 ? 9 : s_game_menu_selection - 1;
 			else if (navigation == ORBIS_PAD_BUTTON_DOWN)
-				s_game_menu_selection = (s_game_menu_selection + 1) % 8;
-			else if (s_game_menu_selection == 1 || s_game_menu_selection == 2 || s_game_menu_selection >= 3 && s_game_menu_selection <= 5)
+				s_game_menu_selection = (s_game_menu_selection + 1) % 10;
+			else if (s_game_menu_selection >= 1 && s_game_menu_selection <= 7)
 			{
 				const int delta = navigation == ORBIS_PAD_BUTTON_LEFT ? -1 : 1;
 				if (s_game_menu_selection == 1)
@@ -637,8 +673,19 @@ void VMHostPoll()
 				}
 				else if (s_game_menu_selection == 5)
 				{
+					s_game_ee_skip = 1u - s_game_ee_skip;
+					ProbeLog("EE cycle skip=%u (takes effect next game launch)\\n", s_game_ee_skip);
+				}
+				else if (s_game_menu_selection == 6)
+				{
+					s_game_vsync_queue = static_cast<unsigned>(
+						(static_cast<int>(s_game_vsync_queue) - 1 + delta + 3) % 3 + 1);
+					ProbeLog("VideoOut queue=%u (takes effect next game launch)\\n", s_game_vsync_queue);
+				}
+				else if (s_game_menu_selection == 7)
+				{
 					s_game_async_audio = !s_game_async_audio;
-					ProbeLog("Audio menu selection: %s (restart required)\\n", s_game_async_audio ? "AsyncMix" : "TimeStretch");
+					ProbeLog("Audio sync=%s (takes effect next game launch)\\n", s_game_async_audio ? "AsyncMix" : "TimeStretch");
 				}
 				else if (delta != 0)
 				{
@@ -961,6 +1008,8 @@ static void* RunVM(void*)
 	}
 	boot.filename = s_selected_game;
 	SetPerGameProfilePath(boot.filename);
+	if (platform == GamePlatform::PS2)
+		LoadPerGameBootOptions(*settings);
 	ProbeLog("Session archive: platform marker saved=%d platform=%s\n",
 		PS4SessionLogs::MarkGame(platform) ? 1 : 0,
 		platform == GamePlatform::PS1 ? "PS1" : platform == GamePlatform::PS2 ? "PS2" : "Other");

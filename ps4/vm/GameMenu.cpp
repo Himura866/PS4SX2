@@ -1259,6 +1259,8 @@ namespace PS4GameMenu
 			const bool show_performance_overlay = menu_state.show_overlay;
 			const unsigned ee_profile = menu_state.ee_profile;
 			const bool async_audio = menu_state.async_audio;
+			const unsigned ee_skip = menu_state.ee_skip;
+			const unsigned frame_queue = menu_state.frame_queue;
 			ImDrawList* draw = ImGui::GetBackgroundDrawList();
 			ImFont* font = ImGui::GetFont();
 			const ImVec2 size = ImGui::GetIO().DisplaySize;
@@ -1295,14 +1297,21 @@ namespace PS4GameMenu
 			std::snprintf(ee_label, sizeof(ee_label), "EE cycles: < %s >", ee_names[std::min(ee_profile, 2u)]);
 			char audio_label[96];
 			std::snprintf(audio_label, sizeof(audio_label), "Audio sync: < %s >", async_audio ? "AsyncMix" : "TimeStretch");
-			const char* labels[] = {"Resume game", resolution, aspect_label, performance_label, ee_label, audio_label, "Return to main menu", "Exit application"};
+			char skip_label[96];
+			std::snprintf(skip_label, sizeof(skip_label), "EE cycle skip: < %s >", ee_skip ? "Light" : "Off");
+			char queue_label[96];
+			std::snprintf(queue_label, sizeof(queue_label), "Frame queue: < %u >", frame_queue);
+			const char* labels[] = {"Resume game", resolution, aspect_label, performance_label,
+				ee_label, skip_label, queue_label, audio_label, "Return to main menu", "Exit application"};
 			const char* descriptions[] = {
 				"Continue emulation from the current frame",
 				"1x prioritizes FPS; 2x balances sharpness; 3x/4x cost more GPU time",
 				"Choose the display shape used by the GS renderer",
 				"Keep FPS and emulation speed visible when comparing settings",
 				"Normal = accurate; Balanced = mild EE underclock; Performance = stronger underclock (may cause slow motion)",
-				"Audio sync selection (takes effect on next game launch)",
+				"Off = accurate; Light may improve some CPU-limited games but can stutter (next launch)",
+				"1 = less latency; 2 = default; 3 = deeper buffering (next launch)",
+				"TimeStretch or AsyncMix audio; different timing behavior (next launch)",
 				"Close the VM and reopen the PS4SX2 game library",
 				"Close the VM and exit PS4SX2"};
 			const auto draw_option_icon = [&](unsigned row, float cx, float cy, bool selected) {
@@ -1342,26 +1351,26 @@ namespace PS4GameMenu
 					draw->AddLine(point(cx + 10, cy - 12), point(cx - 10, cy + 12), icon_line, 3 * scale);
 				}
 			};
-			for (unsigned row = 0; row < 8; row++)
+			for (unsigned row = 0; row < 10; row++)
 			{
-				const float y = 206.0f + row * 67.0f;
+				const float y = 194.0f + row * 58.0f;
 				const bool selected = selected_row == row;
-				draw->AddRectFilled(point(112, y), point(1808, y + 65),
+				draw->AddRectFilled(point(112, y), point(1808, y + 57),
 					selected ? IM_COL32(20, 77, 125, 255) : IM_COL32(11, 33, 52, 255), 10.0f * scale);
 				if (selected)
-					draw->AddRect(point(112, y), point(1808, y + 82), accent, 10.0f * scale, 2.0f * scale, 0);
+					draw->AddRect(point(112, y), point(1808, y + 57), accent, 10.0f * scale, 2.0f * scale, 0);
 				draw_option_icon(row, 168, y + 32, selected);
 				draw->AddText(font, 26.0f * scale, point(226, y + 10), white, labels[row]);
 				draw->AddText(font, 16.0f * scale, point(226, y + 43), muted, descriptions[row]);
-				if (row >= 1 && row <= 5)
+				if (row >= 1 && row <= 7)
 					draw->AddText(font, 20.0f * scale, point(1580, y + 29), selected ? white : muted,
 						row == 1 ? "ADJUST" : (row == 3 ? "TOGGLE" : "SELECT"));
 			}
 			char hint[128];
 			std::snprintf(hint, sizeof(hint), "Left/Right: change value   |   Resolution range: 1x-%ux", max_upscale);
-		draw->AddText(font, 17.0f * scale, point(138, 756), muted, hint);
-		draw->AddText(font, 17.0f * scale, point(138, 786), muted, "For demanding games (Prince of Persia / Downhill), test 1x before 2x-4x.");
-		draw->AddText(font, 17.0f * scale, point(138, 816), muted, "Up/Down: select   Left/Right: change   Square: performance preset   Circle: resume");
+		draw->AddText(font, 17.0f * scale, point(138, 790), muted, hint);
+		draw->AddText(font, 17.0f * scale, point(138, 816), muted, "For demanding games (Prince of Persia / Downhill), test 1x before 2x-4x.");
+		draw->AddText(font, 17.0f * scale, point(138, 842), muted, "Up/Down: select   Left/Right: change   Square: performance preset   Circle: resume");
 			image("controle_x", 1480, 904, 30, 30);
 			draw->AddText(font, 20.0f * scale, point(1524, 909), white, "Confirm");
 			image("controle_bola", 1690, 904, 30, 30);
@@ -1675,10 +1684,11 @@ namespace PS4GameMenu
 	}
 
 	void SetInGameMenu(bool visible, unsigned selected, unsigned upscale, unsigned max_upscale, unsigned aspect,
-		bool show_performance_overlay, unsigned ee_profile, bool async_audio)
+		bool show_performance_overlay, unsigned ee_profile, bool async_audio,
+		unsigned ee_skip, unsigned frame_queue)
 	{
 		const unsigned state = PackInGameMenuState({visible, selected, upscale, max_upscale, aspect,
-			show_performance_overlay, ee_profile, async_audio});
+			show_performance_overlay, ee_profile, async_audio, ee_skip, frame_queue});
 		s_in_game_state.store(state, std::memory_order_release);
 		// Paused emulation produces no VSync. Queue the redraw on the GS thread
 		// so every value change is visible immediately in the panel.
