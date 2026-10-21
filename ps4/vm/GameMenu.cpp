@@ -370,10 +370,101 @@ namespace PS4GameMenu
 			return success;
 		}
 
+
+		// Editable native settings. These are the same opt-in switches read by
+		// the PS4 VM before initialization; no fake on-screen toggles.
+		bool SettingsMarker(const char* name)
+		{
+			const std::string path = std::string("/data/PS4SX2/") + name;
+			struct stat info{};
+			return stat(path.c_str(), &info) == 0 && S_ISREG(info.st_mode);
+		}
+
+		bool SetSettingsMarker(const char* name, bool enabled)
+		{
+			const std::string path = std::string("/data/PS4SX2/") + name;
+			if (!enabled)
+				return std::remove(path.c_str()) == 0 || !SettingsMarker(name);
+			FILE* file = std::fopen(path.c_str(), "wb");
+			return file && std::fclose(file) == 0;
+		}
+
+		unsigned EECycleSetting()
+		{
+			return SettingsMarker("vm-ee-cycle-normal") ? 0u :
+				SettingsMarker("vm-ee-cycle-underclock") ? 2u : 1u;
+		}
+
+		unsigned FrameQueueSetting()
+		{
+			return SettingsMarker("vm-frame-queue-1") ? 1u :
+				SettingsMarker("vm-frame-queue-3") ? 3u : 2u;
+		}
+
+		std::vector<Item> BuildLauncherSettings()
+		{
+			std::vector<Item> entries;
+			entries.reserve(8);
+			const char* ee[] = {"Normal (preciso)", "Equilibrado (-1)", "Desempenho (-2)"};
+			entries.push_back({std::string("Ciclos EE: ") + ee[EECycleSetting()], {}, {}, false,
+				"Perfil de CPU emulada. Underclock pode prejudicar alguns jogos."});
+			entries.push_back({std::string("EE cycle skip: ") + (SettingsMarker("vm-ee-cycle-skip") ? "Experimental" : "Desligado"),
+				{}, {}, false, "Pula ciclos EE: pode causar falhas e velocidade incorreta."});
+			entries.push_back({std::string("Leitura rapida CDVD: ") + (SettingsMarker("vm-fast-cdvd") ? "Ligada" : "Normal"),
+				{}, {}, false, "Leitura acelerada de disco; normal prioriza compatibilidade."});
+			entries.push_back({std::string("Cache de shaders: ") + (SettingsMarker("vm-no-shader-cache") ? "Desligado" : "Ligado"),
+				{}, {}, false, "Cache reduz compilacoes repetidas de shaders em jogos."});
+			entries.push_back({std::string("Boot rapido PS2: ") + (SettingsMarker("vm-no-fast-boot") ? "Desligado" : "Ligado"),
+				{}, {}, false, "Pula a abertura da BIOS; pode ser desativado para jogos sensiveis."});
+			entries.push_back({std::string("Sincronizacao de audio: ") + (SettingsMarker("vm-audio-async") ? "AsyncMix" : "TimeStretch"),
+				{}, {}, false, "AsyncMix e TimeStretch nao alteram a velocidade real do jogo."});
+			entries.push_back({std::string("Fila de quadros: ") + std::to_string(FrameQueueSetting()),
+				{}, {}, false, "1 menor latencia; 2 padrao; 3 pode aumentar latencia."});
+			entries.push_back({std::string("Pre-carregamento GS: ") + (SettingsMarker("vm-no-gs-preload") ? "Desligado" : "Ligado"),
+				{}, {}, false, "Experimente desativar em jogos com artefatos graficos."});
+			return entries;
+		}
+
+		bool ChangeLauncherSetting(size_t index, int delta)
+		{
+			switch (index)
+			{
+			case 0:
+			{
+				const unsigned next = (EECycleSetting() + 3u + (delta < 0 ? 2u : 1u)) % 3u;
+				return SetSettingsMarker("vm-ee-cycle-normal", next == 0) &&
+					SetSettingsMarker("vm-ee-cycle-underclock", next == 2);
+			}
+			case 1:
+				return SetSettingsMarker("vm-ee-cycle-skip", !SettingsMarker("vm-ee-cycle-skip"));
+			case 2:
+				return SetSettingsMarker("vm-fast-cdvd", !SettingsMarker("vm-fast-cdvd"));
+			case 3:
+				return SetSettingsMarker("vm-no-shader-cache", !SettingsMarker("vm-no-shader-cache"));
+			case 4:
+				return SetSettingsMarker("vm-no-fast-boot", !SettingsMarker("vm-no-fast-boot"));
+			case 5:
+				return SetSettingsMarker("vm-audio-async", !SettingsMarker("vm-audio-async"));
+			case 6:
+			{
+				const unsigned next = static_cast<unsigned>((static_cast<int>(FrameQueueSetting()) - 1 +
+					(delta < 0 ? 2 : 1)) % 3 + 1);
+				return SetSettingsMarker("vm-frame-queue-1", next == 1) &&
+					SetSettingsMarker("vm-frame-queue-3", next == 3);
+			}
+			case 7:
+				return SetSettingsMarker("vm-no-gs-preload", !SettingsMarker("vm-no-gs-preload"));
+			default:
+				return false;
+			}
+		}
+
 		std::vector<Item> BuildView(const std::vector<Item>& library, LibraryView view,
 			const std::vector<std::string>& favorites, const std::vector<std::string>& recent)
 		{
 			std::vector<Item> items;
+			if (view == LibraryView::Settings)
+				return BuildLauncherSettings();
 			if (view == LibraryView::Disc)
 			{
 				// Detection is asynchronous; the CPU publishes the result when it is ready.
@@ -702,6 +793,18 @@ namespace PS4GameMenu
 		size_t library_cover_index = 0;
 		std::string disc_status;
 		bool boot_disc_when_ready = false;
+		const auto edit_launcher_setting = [&](int delta) {
+			if (view != LibraryView::Settings || sidebar_focused || selected >= items.size())
+				return;
+			const bool changed = ChangeLauncherSetting(selected, delta);
+			status = changed ? "Configuracao salva: aplicada ao proximo jogo." :
+				"Erro ao salvar. Verifique /data/PS4SX2.";
+			if (changed)
+			{
+				items = BuildView(library, view, favorites, recent);
+				Publish(items, view);
+			}
+		};
 		const auto pump_library_cover = [&]() {
 			if (library_cover.Active())
 				return;
@@ -913,6 +1016,15 @@ namespace PS4GameMenu
 					else if (navigation == ORBIS_PAD_BUTTON_RIGHT)
 						sidebar_focused = false;
 				}
+				else if (view == LibraryView::Settings)
+				{
+					if (navigation == ORBIS_PAD_BUTTON_UP && selected > 0)
+						--selected;
+					else if (navigation == ORBIS_PAD_BUTTON_DOWN && selected + 1 < items.size())
+						++selected;
+					else if (navigation == ORBIS_PAD_BUTTON_LEFT || navigation == ORBIS_PAD_BUTTON_RIGHT)
+						edit_launcher_setting(navigation == ORBIS_PAD_BUTTON_LEFT ? -1 : 1);
+				}
 				else
 				{
 					const size_t column = selected % GridColumns;
@@ -930,7 +1042,8 @@ namespace PS4GameMenu
 						selected = std::min(selected + GridColumns, items.size() - 1);
 				}
 				next_repeat = now + (navigation == held_direction ? 0.10 : 0.35);
-				status.clear();
+				if (view != LibraryView::Settings)
+					status.clear();
 			}
 			held_direction = navigation;
 			if ((pressed & ORBIS_PAD_BUTTON_SQUARE) && !sidebar_focused && view != LibraryView::Disc)
@@ -958,6 +1071,12 @@ namespace PS4GameMenu
 				if (sidebar_focused)
 				{
 					sidebar_focused = false;
+					continue;
+				}
+				if (view == LibraryView::Settings)
+				{
+					edit_launcher_setting(1);
+					Present(selected, status, connected, false, false, false);
 					continue;
 				}
 				if (view == LibraryView::Disc)
@@ -1369,6 +1488,29 @@ namespace PS4GameMenu
 			}
 			image(sidebar_icons[i], 43, y + 12, 34, 34);
 			text(91, y + 37, active ? 19 : 18, active ? white : muted, sidebar_labels[i]);
+		}
+		// A genuine settings screen with interactive controls, not placeholder cards.
+		if (s_library_view == LibraryView::Settings)
+		{
+			fill(294, 128, 1592, 848, IM_COL32(3, 17, 40, 224), 16);
+			draw->AddRect(point(294, 128), point(1886, 976), IM_COL32(35, 126, 224, 190), 16 * scale);
+			text(342, 181, 31, white, "CONFIGURACOES DO EMULADOR");
+			text(342, 213, 17, muted, "Direcional: selecionar e alterar  |  X: proxima opcao  |  L1/R1: trocar aba");
+			for (size_t i = 0; i < s_items.size(); ++i)
+			{
+				const float y = 235.0f + 84.0f * static_cast<float>(i);
+				const bool focused = i == selected && !s_sidebar_focused;
+				fill(336, y, 1502, 77, focused ? IM_COL32(18, 83, 151, 250) : IM_COL32(9, 37, 65, 235), 8);
+				if (focused)
+					draw->AddRect(point(336, y), point(1838, y + 77), accent, 8 * scale, 2 * scale);
+				text(366, y + 31, 22, focused ? white : IM_COL32(211, 230, 250, 255), s_items[i].name.c_str());
+				text(366, y + 59, 15, muted, s_items[i].serial.c_str());
+				text(1770, y + 40, 19, focused ? white : muted, "< >");
+			}
+			if (!s_status.empty())
+				text(345, 954, 16, accent, fit(s_status, 16, 1450).c_str());
+			text(345, 1009, 17, muted, "Opcoes experimentais podem reduzir a compatibilidade. Teste jogo por jogo.");
+			return true;
 		}
 		// PS2 V12 showcase: hero case, printed disc, game details and horizontal shelf.
 		// All artwork uses the existing decoded-cover cache on the GS thread.
