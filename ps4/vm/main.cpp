@@ -132,9 +132,10 @@ extern void VMHostSetCPUThread();
 extern void VMHostDrainCPUQueue();
 extern u64 VMHostGetCPUQueueLockCount();
 static int s_pad = -1;
+static int s_pad2 = -1; // Independent PS2 port 2; opened for a second logged-in PS4 user.
 static std::string s_selected_game;
 static bool s_use_vulkan_selector = false;
-static u32 s_previous_pad_buttons = 0;
+static u32 s_previous_pad_buttons[2] = {};
 static u32 s_previous_host_buttons = 0;
 static u32 s_blocked_pad_buttons = 0;
 static bool s_menu_chord_latched = false;
@@ -277,7 +278,7 @@ static u8 MapStickAxis(u8 value)
 }
 
 // (AI-assisted) Forward the PS4 controller to the first emulated DualShock 2.
-static void VMHostUpdateController(const OrbisPadData& data)
+static void VMHostUpdateController(unsigned port, const OrbisPadData& data)
 {
 	struct ButtonMapping
 	{
@@ -302,20 +303,20 @@ static void VMHostUpdateController(const OrbisPadData& data)
 	};
 	for (const ButtonMapping& mapping : mappings)
 	{
-		const bool was_pressed = (s_previous_pad_buttons & mapping.host_mask) != 0;
+		const bool was_pressed = (s_previous_pad_buttons[port] & mapping.host_mask) != 0;
 		const bool is_pressed = (data.buttons & mapping.host_mask) != 0;
 		if (was_pressed != is_pressed)
-			Pad::SetControllerState(0, mapping.ps2_button, is_pressed ? 1.0f : 0.0f);
+			Pad::SetControllerState(port, mapping.ps2_button, is_pressed ? 1.0f : 0.0f);
 	}
-	s_previous_pad_buttons = data.buttons;
+	s_previous_pad_buttons[port] = data.buttons;
 
-	if (PadBase* pad = Pad::GetPad(0))
+	if (PadBase* pad = Pad::GetPad(port))
 	{
 		pad->SetRawAnalogs(
 			{MapStickAxis(data.leftStick.x), MapStickAxis(data.leftStick.y)},
 			{MapStickAxis(data.rightStick.x), MapStickAxis(data.rightStick.y)});
-		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_L2, data.analogButtons.l2 / 255.0f);
-		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_R2, data.analogButtons.r2 / 255.0f);
+		Pad::SetControllerState(port, PadDualshock2::Inputs::PAD_L2, data.analogButtons.l2 / 255.0f);
+		Pad::SetControllerState(port, PadDualshock2::Inputs::PAD_R2, data.analogButtons.r2 / 255.0f);
 	}
 }
 
@@ -527,7 +528,18 @@ void VMHostPoll()
 	}
 	else
 		buttons.buttons &= ~s_blocked_pad_buttons;
-	VMHostUpdateController(buttons);
+	VMHostUpdateController(0, buttons);
+	// Controller 2 is an independent DS2 port. Keep its input neutral during
+	// pause/menu/disconnect so held buttons never remain stuck.
+	OrbisPadData player2{};
+	const bool player2_read = s_pad2 >= 0 && scePadReadState(s_pad2, &player2) == 0 && player2.connected;
+	if (!player2_read || s_game_menu_open || vm_state == VMState::Paused)
+	{
+		player2 = {};
+		player2.leftStick.x = player2.leftStick.y = 128;
+		player2.rightStick.x = player2.rightStick.y = 128;
+	}
+	VMHostUpdateController(1, player2);
 	if (!menu_was_open && s_game_menu_open)
 	{
 		// (AI-assisted) Verbose bracket to isolate which pause step hangs. Needs proper testing.
@@ -1051,6 +1063,8 @@ static void* RunVM(void*)
 		// (AI-assisted) A DS4 has no dedicated analog-mode switch; start the emulated DS2 in analog mode.
 		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_ANALOG, 1.0f);
 		Pad::SetControllerState(0, PadDualshock2::Inputs::PAD_ANALOG, 0.0f);
+		Pad::SetControllerState(1, PadDualshock2::Inputs::PAD_ANALOG, 1.0f);
+		Pad::SetControllerState(1, PadDualshock2::Inputs::PAD_ANALOG, 0.0f);
 		ProbeLog("Controller: DualShock 2 analog mode enabled; both sticks and analog triggers forwarded.\n");
 		s_verbose_diag = access("/data/PS4SX2/vm-verbose-log", F_OK) == 0;
 		ProbeLog("Verbose diagnostics: %s (single marker /data/PS4SX2/vm-verbose-log forces 1s heartbeat, TimedWaitGS, and GS/EE hotspot sampling)\n",
@@ -1091,7 +1105,7 @@ static void* RunVM(void*)
 		s_last_pause_log = 0.0;
 		s_last_input = -1.0;
 		s_last_ee_cycle = cpuRegs.cycle;
-		s_previous_pad_buttons = s_previous_host_buttons = 0;
+		s_previous_pad_buttons[0] = s_previous_pad_buttons[1] = s_previous_host_buttons = 0;
 		s_blocked_pad_buttons = ~u32{0}; // Consume any launcher button still held.
 		s_menu_chord_latched = s_game_menu_open = false;
 		s_game_menu_selection = 0;
@@ -1247,6 +1261,26 @@ int main()
 			if (user_result == 0)
 				s_pad = scePadOpen(user, 0, 0, nullptr);
 			ProbeLog("Vulkan input: pad init=%#x user=%#x handle=%d\n", pad_result, user_result, s_pad);
+			// Enumerate signed-in PS4 users: port 1 keeps the initial user;
+			// port 2 uses a distinct user, not a duplicate handle.
+			OrbisUserServiceLoginUserIdList users{};
+			const int list_result = sceUserServiceGetLoginUserIdList(&users);
+			if (list_result == 0 && user_result == 0)
+			{
+				for (const auto candidate : users.userId)
+				{
+					if (candidate < 0 || candidate == user)
+						continue;
+					const int handle = scePadOpen(candidate, 0, 0, nullptr);
+					if (handle >= 0)
+					{
+						s_pad2 = handle;
+						ProbeLog("PS2 multiplayer: port=2 user=%#x handle=%d\n", candidate, handle);
+						break;
+					}
+				}
+			}
+			ProbeLog("PS2 multiplayer: secondary login scan=%#x player2_handle=%d\n", list_result, s_pad2);
 		}
 	}
 	int rc = 0;
@@ -1267,6 +1301,8 @@ int main()
 		ProbeLog("CPU thread failed: %d\n", rc);
 	if (s_pad >= 0)
 		scePadClose(s_pad);
+	if (s_pad2 >= 0)
+		scePadClose(s_pad2);
 	const bool relaunch_main_menu = rc == 0 && s_return_to_main_menu.load(std::memory_order_acquire);
 	Log::SetHostOutputLevel(LOGLEVEL_NONE, nullptr);
 	PS4Telemetry::Stage(relaunch_main_menu ? "exit-relaunch" : "exit");
