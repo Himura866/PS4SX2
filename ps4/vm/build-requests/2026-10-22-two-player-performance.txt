@@ -1,0 +1,5 @@
+PS4SX2 test build request
+Includes selected -O3 PS2 emulation hotspots and two-controller routing.
+Target: PS4 Pro / OpenOrbis / GoldHEN.
+Validation required: successful compile, EBOOT, PKG, and console test.
+No performance improvement is claimed before benchmarking.
