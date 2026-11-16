@@ -1158,12 +1158,6 @@ constexpr OrbisGameDbAlias kOrbisGameDbAliases[] = {
 	{"SLUS-21978", "SLUS-21678", "Dragon Ball Z - Budokai Tenkaichi 4 (fan mod of Budokai Tenkaichi 3)"},
 };
 
-// R25F: Carbon Collector's Edition PAL-F has the same engine and other
-// visual GameDB fixes as the PAL-E/PAL-F-G editions, but lacks drawBuffering.
-// Apply the known recommendation here without rewriting the large GameIndex.yaml.
-constexpr const char* kOrbisCarbonPALFDrawBufferSerial = "SLES-54402";
-
-
 void OrbisApplyGameDbAdditions()
 {
 	int added = 0;
@@ -1188,21 +1182,6 @@ void OrbisApplyGameDbAdditions()
 					"-> Budokai Tenkaichi 3)",
 		aliased, std::size(kOrbisGameDbAliases));
 
-	// Apply only to the known serial and avoid duplicating a fix when the
-	// bundled GameIndex.yaml is upgraded in a later release.
-	const auto carbon = s_game_db.find(StringUtil::toLower(kOrbisCarbonPALFDrawBufferSerial));
-	if (carbon != s_game_db.end())
-	{
-		auto& fixes = carbon->second.gsHWFixes;
-		const auto existing = std::find_if(fixes.begin(), fixes.end(), [](const auto& fix) {
-			return fix.first == GameDatabaseSchema::GSHWFixId::DrawBuffering;
-		});
-		if (existing == fixes.end())
-		{
-			fixes.emplace_back(GameDatabaseSchema::GSHWFixId::DrawBuffering, 1);
-			Console.WriteLn("GameDB: Carbon PAL-F SLES-54402: Draw Buffering enabled (PS4 R25F fix)");
-		}
-	}
 	for (const OrbisGameFixAddition& add : kOrbisGameFixAdditions) // vk-285-125
 	{
 		const std::string serial = StringUtil::toLower(add.serial);
@@ -1249,6 +1228,24 @@ void GameDatabase::ensureLoaded()
 		initDatabase();
 #ifdef ORBIS_VULKAN
 		OrbisApplyGameDbAdditions(); // vk-285-115
+#endif
+#if defined(PCSX2_PS4_VM_BOOT)
+		// R25F PS4 backend: PAL-F Carbon Collector's Edition (SLES-54402)
+		// lacks the draw-buffering fix present in the other Carbon releases.
+		// Do not duplicate the recommendation if a later GameIndex gains it.
+		const auto carbon = s_game_db.find(StringUtil::toLower("SLES-54402"));
+		if (carbon != s_game_db.end())
+		{
+			auto& fixes = carbon->second.gsHWFixes;
+			const auto existing = std::find_if(fixes.begin(), fixes.end(), [](const auto& fix) {
+				return fix.first == GameDatabaseSchema::GSHWFixId::DrawBuffering;
+			});
+			if (existing == fixes.end())
+			{
+				fixes.emplace_back(GameDatabaseSchema::GSHWFixId::DrawBuffering, 1);
+				Console.WriteLn("GameDB: PS4 Carbon PAL-F SLES-54402: Draw Buffering recommendation added");
+			}
+		}
 #endif
 		Console.WriteLn("GameDB: %zu games on record (loaded in %.2fms)", s_game_db.size(), timer.GetTimeMilliseconds());
 	});
