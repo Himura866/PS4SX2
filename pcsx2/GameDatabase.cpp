@@ -16,6 +16,7 @@
 #include "common/Timer.h"
 #include "common/YAML.h"
 
+#include <algorithm>
 #include <sstream>
 #include "fmt/format.h"
 #include "fmt/ranges.h"
