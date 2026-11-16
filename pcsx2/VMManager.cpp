@@ -775,7 +775,7 @@ void VMManager::ApplyGameFixes()
 		game->applyGSHardwareFixes(EmuConfig.GS);
 	}
 #if defined(PCSX2_PS4_VM_BOOT)
-	// R25F: Apply the proven GameDB recommendation by default. Global force-on
+	// R25F: Apply the documented GameDB recommendation by default. Global force-on
 	// is opt-in because draw batching can render some games incorrectly. This
 	// policy runs on game/config changes, never in the per-draw hot path.
 	const bool marker_on = access("/data/PS4SX2/vm-gs-draw-buffering-all", F_OK) == 0;
