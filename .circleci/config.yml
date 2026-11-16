@@ -27,6 +27,21 @@ jobs:
             inc="-I. -Ipcsx2 -Icommon -I3rdparty -I3rdparty/fast_float/include -I3rdparty/fmt/include -I3rdparty/xbyak -I3rdparty/xbyak/xbyak -I3rdparty/include -I3rdparty/stb/include -I3rdparty/vulkan/include -I3rdparty/rapidyaml/include -I3rdparty/simpleini/include"
             g++ -std=c++20 -msse4.1 -DPCSX2_PS4_VM_BOOT=1 $inc -fsyntax-only pcsx2/MTVU.cpp
             g++ -std=c++20 -msse4.1 $inc -fsyntax-only pcsx2/MTVU.cpp
+  r25f-host-gs-validation:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Check game-wide draw buffering policy and PS4 GS integration
+          command: |
+            set -eu
+            python3 ps4/vm/tests/draw_buffering_source_tests.py
+            mkdir -p /tmp/himura-ci-tests
+            g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. \
+              ps4/vm/tests/draw_buffering_policy_tests.cpp -o /tmp/himura-ci-tests/draw_buffering
+            /tmp/himura-ci-tests/draw_buffering
   r25d-orbis-eboot-experimental:
     # ONLY on an explicitly requested pipeline with build_ps4=true.
     # This compiles backend PS4 artifacts, NOT an installable PKG.
@@ -72,6 +87,13 @@ jobs:
           path: /tmp/r25d-out
           destination: r25d-backend-experimental
 workflows:
+  r25f-host-gs-checks:
+    jobs:
+      - r25f-host-gs-validation:
+          filters:
+            branches:
+              only:
+                - perf/r25f-draw-buffering-policy-20261116
   r25d-host-checks:
     jobs:
       - r25d-host-vu-validation:
@@ -79,6 +101,7 @@ workflows:
             branches:
               only:
                 - perf/r25d-vu-trace-circleci-20261116
+                - perf/r25f-draw-buffering-policy-20261116
   r25d-optional-orbis-compile:
     when: << pipeline.parameters.build_ps4 >>
     jobs:
@@ -87,3 +110,4 @@ workflows:
             branches:
               only:
                 - perf/r25d-vu-trace-circleci-20261116
+                - perf/r25f-draw-buffering-policy-20261116
