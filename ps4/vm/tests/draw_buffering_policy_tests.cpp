@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ps4/vm/HimuraDrawBufferingPolicy.hpp"
 #include <cassert>
+#include <initializer_list>
 #include <cstdio>
 
 using HimuraDrawBufferingPolicy::Choose;
