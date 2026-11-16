@@ -1,0 +1,89 @@
+version: 2.1
+# Default: inexpensive host checks only. Never automatically run heavy Orbis builds.
+parameters:
+  build_ps4:
+    type: boolean
+    default: false
+jobs:
+  r25d-host-vu-validation:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Validate opt-in VU1 diagnostic code
+          command: |
+            set -eu
+            python3 ps4/vm/tests/mtvu_trace_source_tests.py pcsx2/MTVU.cpp
+            mkdir -p /tmp/himura-ci-tests
+            g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. \
+              ps4/vm/tests/vu_trace_policy_tests.cpp -o /tmp/himura-ci-tests/vu_trace
+            /tmp/himura-ci-tests/vu_trace
+      - run:
+          name: Compile full MTVU translation unit syntax (PS4 config and desktop)
+          command: |
+            set -eu
+            inc="-I. -Ipcsx2 -Icommon -I3rdparty -I3rdparty/fast_float/include -I3rdparty/fmt/include -I3rdparty/xbyak -I3rdparty/xbyak/xbyak -I3rdparty/include -I3rdparty/stb/include -I3rdparty/vulkan/include -I3rdparty/rapidyaml/include -I3rdparty/simpleini/include"
+            g++ -std=c++20 -msse4.1 -DPCSX2_PS4_VM_BOOT=1 $inc -fsyntax-only pcsx2/MTVU.cpp
+            g++ -std=c++20 -msse4.1 $inc -fsyntax-only pcsx2/MTVU.cpp
+  r25d-orbis-eboot-experimental:
+    # ONLY on an explicitly requested pipeline with build_ps4=true.
+    # This compiles backend PS4 artifacts, NOT an installable PKG.
+    docker:
+      - image: ubuntu:24.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Install Git and toolchain prerequisites
+          command: |
+            set -eu
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl gnupg git openssh-client cmake ninja-build rsync python3 libxml2 libtinfo6 zlib1g
+            curl --fail --location --retry 3 https://apt.llvm.org/llvm-snapshot.gpg.key -o /tmp/llvm.asc
+            gpg --dearmor < /tmp/llvm.asc > /usr/share/keyrings/llvm-ci.gpg
+            echo 'deb [signed-by=/usr/share/keyrings/llvm-ci.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-21 main' > /etc/apt/sources.list.d/llvm-ci.list
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends clang-21 llvm-21 lld-21
+      - checkout
+      - run:
+          name: Download SHA-256-pinned public SDK and build PS4 VM backend
+          no_output_timeout: 90m
+          command: |
+            set -euo pipefail
+            export PS4_SDK_URL=https://github.com/Phoenixx1202/PS4SX2-SDK/releases/download/sdk-v2/ps4sx2-sdk-v2.tar.gz
+            export PS4_SDK_SHA256=0d7261c3e6c8e8d8e2e71d13ee9f39bcba8936fa1d50dbfce6e279c3c4e99822
+            python3 tools/ci/fetch-sdk.py --destination /tmp/ps4-sdk --component linux
+            mkdir -p ps4/deps/prefix
+            rsync -a /tmp/ps4-sdk/linux/prefix/ ps4/deps/prefix/
+            export OPENORBIS=/tmp/ps4-sdk/linux/openorbis
+            export OO_PS4_TOOLCHAIN="$OPENORBIS"
+            export PS4_SYSROOT=/tmp/ps4-sdk/linux/sysroot
+            export PS4_MESA_BUILD=/tmp/ps4-sdk/linux/mesa
+            export VM_SOURCE_STAGE=/tmp/ps4sx2-src
+            export VM_BUILD_DIR=/tmp/ps4sx2-build
+            export PCSX2_VM_JIT=ON PCSX2_VM_FASTMEM=OFF PCSX2_VM_MTVU=ON
+            chmod +x "$OPENORBIS"/bin/*
+            mkdir -p /tmp/r25d-out
+            bash ps4/vm/build-wsl.sh 2 > /tmp/r25d-out/build.log 2>&1 || { tail -n 150 /tmp/r25d-out/build.log; exit 1; }
+            cp ps4/vm/build/eboot.bin ps4/vm/build/vm_boot.oelf /tmp/r25d-out/
+            sha256sum /tmp/r25d-out/eboot.bin /tmp/r25d-out/vm_boot.oelf > /tmp/r25d-out/SHA256SUMS
+      - store_artifacts:
+          path: /tmp/r25d-out
+          destination: r25d-backend-experimental
+workflows:
+  r25d-host-checks:
+    jobs:
+      - r25d-host-vu-validation:
+          filters:
+            branches:
+              only:
+                - perf/r25d-vu-trace-circleci-20261116
+  r25d-optional-orbis-compile:
+    when: << pipeline.parameters.build_ps4 >>
+    jobs:
+      - r25d-orbis-eboot-experimental:
+          filters:
+            branches:
+              only:
+                - perf/r25d-vu-trace-circleci-20261116
