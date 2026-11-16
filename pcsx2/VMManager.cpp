@@ -50,6 +50,11 @@
 #include "OrbisEEProf.h"
 #include "ps2/BiosTools.h"
 
+#if defined(PCSX2_PS4_VM_BOOT)
+#include "ps4/vm/HimuraDrawBufferingPolicy.hpp"
+#include <unistd.h>
+#endif
+
 #include "common/Console.h"
 #include "common/Error.h"
 #include "common/FileSystem.h"
@@ -764,11 +769,28 @@ void VMManager::ApplyGameFixes()
 	}
 
 	const GameDatabaseSchema::GameEntry* game = GameDatabase::findGame(s_disc_serial);
+	if (game)
+	{
+		game->applyGameFixes(EmuConfig, EmuConfig.EnableGameFixes);
+		game->applyGSHardwareFixes(EmuConfig.GS);
+	}
+#if defined(PCSX2_PS4_VM_BOOT)
+	// R25F: Apply the proven GameDB recommendation by default. Global force-on
+	// is opt-in because draw batching can render some games incorrectly. This
+	// policy runs on game/config changes, never in the per-draw hot path.
+	const bool marker_on = access("/data/PS4SX2/vm-gs-draw-buffering-all", F_OK) == 0;
+	const bool marker_off = access("/data/PS4SX2/vm-no-draw-buffering", F_OK) == 0;
+	const auto mode = HimuraDrawBufferingPolicy::Choose(marker_on, marker_off);
+	const bool recommended = EmuConfig.GS.UserHacks_DrawBuffering;
+	EmuConfig.GS.UserHacks_DrawBuffering = HimuraDrawBufferingPolicy::Resolve(recommended, mode);
+	Console.WriteLn("HIMURA GS Draw Buffering: %s (GameDB=%u, mode=%s, serial=%s)",
+		EmuConfig.GS.UserHacks_DrawBuffering ? "enabled" : "disabled", recommended ? 1u : 0u,
+		mode == HimuraDrawBufferingPolicy::Mode::ForceOff ? "force-off" :
+		mode == HimuraDrawBufferingPolicy::Mode::ForceOn ? "experimental-all" : "auto",
+		s_disc_serial.c_str());
+#endif
 	if (!game)
 		return;
-
-	game->applyGameFixes(EmuConfig, EmuConfig.EnableGameFixes);
-	game->applyGSHardwareFixes(EmuConfig.GS);
 
 	// Re-remove upscaling fixes, make sure they don't apply at native res.
 	// We do this in LoadCoreSettings(), but game fixes get applied afterwards because of the unsafe warning.
