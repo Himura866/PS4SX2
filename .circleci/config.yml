@@ -1,0 +1,34 @@
+version: 2.1
+# This is deliberately a Linux HOST check only. It does not create a PS4 PKG.
+# PS4 binaries require a separately provisioned OpenOrbis SDK and PS4 sysroot.
+jobs:
+  r25d-host-vu-validation:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Validate opt-in VU1 diagnostic code
+          command: |
+            set -eu
+            python3 ps4/vm/tests/mtvu_trace_source_tests.py pcsx2/MTVU.cpp
+            mkdir -p /tmp/himura-ci-tests
+            g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. \
+              ps4/vm/tests/vu_trace_policy_tests.cpp -o /tmp/himura-ci-tests/vu_trace
+            /tmp/himura-ci-tests/vu_trace
+      - run:
+          name: Compile full MTVU translation unit syntax (PS4 config and desktop)
+          command: |
+            set -eu
+            inc="-I. -Ipcsx2 -Icommon -I3rdparty -I3rdparty/fast_float/include -I3rdparty/fmt/include -I3rdparty/xbyak -I3rdparty/xbyak/xbyak -I3rdparty/include -I3rdparty/stb/include -I3rdparty/vulkan/include -I3rdparty/rapidyaml/include -I3rdparty/simpleini/include"
+            g++ -std=c++20 -msse4.1 -DPCSX2_PS4_VM_BOOT=1 $inc -fsyntax-only pcsx2/MTVU.cpp
+            g++ -std=c++20 -msse4.1 $inc -fsyntax-only pcsx2/MTVU.cpp
+workflows:
+  r25d-host-checks:
+    jobs:
+      - r25d-host-vu-validation:
+          filters:
+            branches:
+              only:
+                - perf/r25d-vu-trace-circleci-20261116
