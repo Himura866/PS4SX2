@@ -10,11 +10,13 @@
 #include "Vif_Dynarec.h"
 #include "OrbisEEProf.h"
 #include "ps4/core/WorkerProfilePS4.h"
+#include "ps4/vm/HimuraVUDiagnostics.hpp"
 
 #include <thread>
 #if defined(PCSX2_PS4_VM_BOOT)
 #include "ps4/core/ThreadCPUMetricsPS4.h"
 #include "ps4/core/ThreadAffinityPS4.h"
+#include <unistd.h>
 #endif
 
 VU_Thread vu1Thread;
@@ -101,6 +103,8 @@ namespace
 	u32 s_orbis_hist_pos = 0;
 	__fi void OrbisHist(u8 type, u32 a, u32 b, u32 c, u32 d)
 	{
+		if (!HimuraVUDiagnostics::Enabled())
+			return;
 		s_orbis_hist[s_orbis_hist_pos % 24] = {type, a, b, c, d};
 		s_orbis_hist_pos++;
 	}
@@ -252,6 +256,8 @@ void VU_Thread::ExecuteRingBuffer()
 	Threading::SetNameOfCurrentThread("MTVU");
 #if defined(PCSX2_PS4_VM_BOOT)
 	PS4ThreadAffinity::PinCurrentThread("VU1", 3);
+	HimuraVUDiagnostics::Configure(access("/data/HIMURA_PS4SX2/vm-vu-trace", F_OK) == 0);
+	std::printf("HIMURA VU trace: %s\n", HimuraVUDiagnostics::Enabled() ? "ON" : "OFF");
 #endif
 
 	for (;;)
@@ -295,7 +301,8 @@ void VU_Thread::ExecuteRingBuffer()
 					if (addr != -1)
 						VU1.VI[REG_TPC].UL = addr & 0x7FF;
 					// vk-285-80: the lighting program's count, checked before it runs.
-					if (addr != -1 && (addr & 0x7ff) == (0xb0 >> 3))
+					const bool vu_trace = HimuraVUDiagnostics::Enabled();
+					if (vu_trace && addr != -1 && (addr & 0x7ff) == (0xb0 >> 3))
 					{
 						const u32* mem = reinterpret_cast<const u32*>(VU1.Mem);
 						const u32 top = vifRegs.top & 0x3ff;
@@ -323,9 +330,10 @@ void VU_Thread::ExecuteRingBuffer()
 					}
 					OrbisHist(1, addr == -1 ? 0xffffu : static_cast<u32>(addr & 0x7ff) * 8, vifRegs.top & 0x3ff, static_cast<u32>(m_read_pos - 5), 0);
 					// vk-285-82: the state each run starts from, for the long-run log after it.
-					const u32 orbis_start_tpc = (VU1.VI[REG_TPC].UL & 0x7ff) * 8;
-					const u16 orbis_start_vi3 = VU1.VI[3].US[0], orbis_start_vi4 = VU1.VI[4].US[0];
-					const u32 orbis_start_q0 = reinterpret_cast<const u32*>(VU1.Mem)[0];
+					const u32 orbis_start_tpc = vu_trace ? (VU1.VI[REG_TPC].UL & 0x7ff) * 8 : 0;
+					const u16 orbis_start_vi3 = vu_trace ? VU1.VI[3].US[0] : 0;
+					const u16 orbis_start_vi4 = vu_trace ? VU1.VI[4].US[0] : 0;
+					const u32 orbis_start_q0 = vu_trace ? reinterpret_cast<const u32*>(VU1.Mem)[0] : 0;
 					CpuVU1->SetStartPC(VU1.VI[REG_TPC].UL << 3);
 					{
 						PS4_WORKER_SCOPE(VUExecute);
@@ -338,6 +346,7 @@ void VU_Thread::ExecuteRingBuffer()
 					// vk-285-74: only this thread writes them, so no locked adds.
 					g_orbis_vu1_cycles.store(g_orbis_vu1_cycles.load(std::memory_order_relaxed) + VU1.cycle, std::memory_order_relaxed);
 					g_orbis_vu1_runs.store(g_orbis_vu1_runs.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+					if (vu_trace)
 					{
 						// vk-285-77: the run's length (the GS thread reads and resets these once a second).
 						const u64 c = VU1.cycle;
