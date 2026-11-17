@@ -87,6 +87,13 @@ jobs:
           path: /tmp/r25d-out
           destination: r25d-backend-experimental
 workflows:
+  r25f-one-time-orbis-backend-check:
+    jobs:
+      - r25d-orbis-eboot-experimental:
+          filters:
+            branches:
+              only:
+                - perf/r25f-draw-buffering-policy-20261116
   r25f-host-gs-checks:
     jobs:
       - r25f-host-gs-validation:
