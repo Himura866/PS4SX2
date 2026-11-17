@@ -9,6 +9,8 @@ gs = Path("pcsx2/GS/GSState.cpp").read_text(encoding="utf-8")
 checks = {
     "opt-in global marker": "/data/PS4SX2/vm-gs-draw-buffering-all" in vm,
     "rollback marker": "/data/PS4SX2/vm-no-draw-buffering" in vm,
+    "per-game marker names": "vm-gs-db-" in vm and '".on"' in vm and '".off"' in vm,
+    "per-game serial path validation": "HimuraDrawBufferingPolicy::IsSafeSerial(s_disc_serial)" in vm,
     "game database preserved": "HimuraDrawBufferingPolicy::Resolve" in vm,
     "game database fixes still applied": "game->applyGSHardwareFixes(EmuConfig.GS)" in vm,
     "PS4-only override": "#if defined(PCSX2_PS4_VM_BOOT)" in vm,
