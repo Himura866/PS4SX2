@@ -780,7 +780,17 @@ void VMManager::ApplyGameFixes()
 	// policy runs on game/config changes, never in the per-draw hot path.
 	const bool marker_on = access("/data/PS4SX2/vm-gs-draw-buffering-all", F_OK) == 0;
 	const bool marker_off = access("/data/PS4SX2/vm-no-draw-buffering", F_OK) == 0;
-	const auto mode = HimuraDrawBufferingPolicy::Choose(marker_on, marker_off);
+	// Optional game-specific overrides never affect another title. Accept only
+	// normalized serials to avoid using metadata as an arbitrary filesystem path.
+	bool game_marker_on = false;
+	bool game_marker_off = false;
+	if (HimuraDrawBufferingPolicy::IsSafeSerial(s_disc_serial))
+	{
+		const std::string base_path = "/data/PS4SX2/vm-gs-db-" + s_disc_serial;
+		game_marker_on = access((base_path + ".on").c_str(), F_OK) == 0;
+		game_marker_off = access((base_path + ".off").c_str(), F_OK) == 0;
+	}
+	const auto mode = HimuraDrawBufferingPolicy::Choose(marker_on, marker_off, game_marker_on, game_marker_off);
 	const bool recommended = EmuConfig.GS.UserHacks_DrawBuffering;
 	EmuConfig.GS.UserHacks_DrawBuffering = HimuraDrawBufferingPolicy::Resolve(recommended, mode);
 	Console.WriteLn("HIMURA GS Draw Buffering: %s (GameDB=%u, mode=%s, serial=%s)",

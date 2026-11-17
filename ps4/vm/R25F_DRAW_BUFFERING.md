@@ -15,6 +15,18 @@ Default (no marker files): **GameDB recommendations only**. Works for all titles
 - To return to the normal game-by-game policy, remove both markers and restart the game.
 - These files are stored in the emulator data folder, not inside a game ISO.
 
+### R25F additional enhancement: per-game A/B testing
+You can change the experimental Draw Buffering setting for **one PS2 serial at a time**, without turning the feature on for every game:
+- Force ON for Most Wanted (US) only: create empty `/data/PS4SX2/vm-gs-db-SLUS-21257.on`.
+- Force OFF for Most Wanted (US) only: create empty `/data/PS4SX2/vm-gs-db-SLUS-21257.off`.
+- Replace `SLUS-21257` with the actual uppercase serial printed in the emulator log.
+- The per-game OFF file takes priority over any ON file; global `vm-no-draw-buffering` remains the emergency override and **always wins**.
+- Remove per-game files and relaunch to restore the normal GameDB choice.
+- Invalid serials containing dots, slashes or whitespace are never used as filesystem paths.
+
+These are source-code controls for an A/B experiment, **not** proof of improved FPS on the PS4 Pro.
+
+
 Draw buffering combines eligible draws to reduce CPU/GS work on certain games, but may cause corruption or have little benefit depending on the title. It cannot guarantee a higher FPS for every title. It does not affect the game's native 30/60 FPS design.
 
 ## Real-hardware acceptance test
