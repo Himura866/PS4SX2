@@ -94,6 +94,7 @@ workflows:
             branches:
               only:
                 - perf/r25f-draw-buffering-policy-20261116
+                - perf/r25f-per-game-gs-override-20261116
   r25d-host-checks:
     jobs:
       - r25d-host-vu-validation:
@@ -102,6 +103,7 @@ workflows:
               only:
                 - perf/r25d-vu-trace-circleci-20261116
                 - perf/r25f-draw-buffering-policy-20261116
+                - perf/r25f-per-game-gs-override-20261116
   r25d-optional-orbis-compile:
     when: << pipeline.parameters.build_ps4 >>
     jobs:
@@ -111,3 +113,4 @@ workflows:
               only:
                 - perf/r25d-vu-trace-circleci-20261116
                 - perf/r25f-draw-buffering-policy-20261116
+                - perf/r25f-per-game-gs-override-20261116
