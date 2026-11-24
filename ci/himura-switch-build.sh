@@ -17,6 +17,23 @@ STAGE="inicio"
 on_exit() {
   result=$?
   set +e
+  # Diagnostico resumido para telas pequenas: coletar a PRIMEIRA mensagem
+  # real de erro do compilador, nao apenas o ultimo 'exit 1'.
+  if [ "$result" -ne 0 ]; then
+    {
+      echo "HIMURA SWITCH PS4 - diagnostico de erro (R04)"
+      printf 'stage=%s exit_code=%s\n' "$STAGE" "$result"
+      echo "PRIMEIRAS MENSAGENS DE ERRO:"
+      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$REPORT/build.log" | head -n 15 || true
+      echo "ULTIMAS MENSAGENS DE ERRO:"
+      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$REPORT/build.log" | tail -n 15 || true
+      echo "FINAL DO LOG:"
+      tail -n 15 "$REPORT/build.log" || true
+    } > "$REPORT/ERRO-PRINCIPAL.txt"
+    echo "========== HIMURA SWITCH: ERRO RESUMIDO =========="
+    cat "$REPORT/ERRO-PRINCIPAL.txt"
+    echo "==================================================="
+  fi
   printf 'stage=%s\nexit_code=%s\nsource_commit=%s\nsdk_sha256=%s\n' "$STAGE" "$result" "$SOURCE_COMMIT" "$SDK_SHA256" > "$REPORT/result.txt"
   if [ -d "$ROOT/out-eden" ]; then
     find "$ROOT/out-eden" -maxdepth 1 -type f -exec cp -f {} "$PKG_ARTIFACTS/" \;
