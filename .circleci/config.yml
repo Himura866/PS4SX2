@@ -1,0 +1,45 @@
+# HIMURA SWITCH PS4 | CI experimental (Linux)
+# Disparo manual na branch himura-switch-ps4.
+# Aprovacao do job nao garante jogos compativeis nem boot no console.
+version: 2.1
+
+jobs:
+  compilar_eden_ps4:
+    docker:
+      - image: ubuntu:24.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Preparar ferramentas Linux para checkout
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl git openssh-client
+      - checkout
+      - run:
+          name: Instalar compilador LLVM 18 e dependencias do PS4
+          no_output_timeout: 20m
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y -qq build-essential clang-18 lld-18 llvm-18 llvm-18-dev \
+              cmake ninja-build glslang-tools spirv-tools python3-pil python3 \
+              unzip p7zip-full perl make pkg-config nasm ccache libssl-dev zlib1g-dev
+            /usr/lib/llvm-18/bin/clang --version | head -1
+      - run:
+          name: Construir Eden / ELF / PKG PS4 e registrar falhas
+          no_output_timeout: 45m
+          command: bash ci/himura-switch-build.sh
+      - store_artifacts:
+          path: switch-build-reports
+          destination: switch-build-reports
+      - store_artifacts:
+          path: switch-build-pkgs
+          destination: switch-build-pkgs
+
+workflows:
+  tentar_compilacao_switch:
+    jobs:
+      - compilar_eden_ps4:
+          filters:
+            branches:
+              only: himura-switch-ps4
