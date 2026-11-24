@@ -1,34 +1,45 @@
-# HIMURA SWITCH PS4 - primeira etapa do CircleCI
-# Esta etapa valida o acesso ao codigo-fonte publico.
-# Ainda nao compila nem produz um PKG.
+# HIMURA SWITCH PS4 | CI experimental (Linux)
+# Disparo manual na branch himura-switch-ps4.
+# Aprovacao do job nao garante jogos compativeis nem boot no console.
 version: 2.1
 
 jobs:
-  verificar_fonte_switch:
+  compilar_eden_ps4:
     docker:
-      - image: cimg/base:stable
+      - image: ubuntu:24.04
+    resource_class: medium
     steps:
+      - run:
+          name: Preparar ferramentas Linux para checkout
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl git openssh-client
       - checkout
       - run:
-          name: Baixar e conferir o Orbis Eden
+          name: Instalar compilador LLVM 18 e dependencias do PS4
+          no_output_timeout: 20m
           command: |
-            set -eu
-            mkdir -p /tmp/himura-switch-report
-            git clone --depth 1 https://github.com/MrKitsune9/Orbis-EDEN.git /tmp/orbis-eden
-            cd /tmp/orbis-eden
-            git rev-parse HEAD > /tmp/himura-switch-report/commit-fonte.txt
-            test -f configure-eden.sh
-            test -f package-eden.sh
-            find ci scripts toolchain -maxdepth 2 -type f | sort > /tmp/himura-switch-report/arquivos-disponiveis.txt
-            printf 'Fonte publica validada. Compilacao e PKG ainda pendentes.\n' > /tmp/himura-switch-report/status.txt
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y -qq build-essential clang-18 lld-18 llvm-18 llvm-18-dev \
+              cmake ninja-build glslang-tools spirv-tools python3-pil python3 \
+              unzip p7zip-full perl make pkg-config nasm ccache libssl-dev zlib1g-dev
+            /usr/lib/llvm-18/bin/clang --version | head -1
+      - run:
+          name: Construir Eden / ELF / PKG PS4 e registrar falhas
+          no_output_timeout: 45m
+          command: bash ci/himura-switch-build.sh
       - store_artifacts:
-          path: /tmp/himura-switch-report
-          destination: switch-preflight
+          path: switch-build-reports
+          destination: switch-build-reports
+      - store_artifacts:
+          path: switch-build-pkgs
+          destination: switch-build-pkgs
 
 workflows:
-  validar_base_switch:
+  tentar_compilacao_switch:
     jobs:
-      - verificar_fonte_switch:
+      - compilar_eden_ps4:
           filters:
             branches:
               only: himura-switch-ps4
