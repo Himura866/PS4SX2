@@ -1,0 +1,34 @@
+# HIMURA SWITCH PS4 - primeira etapa do CircleCI
+# Esta etapa valida o acesso ao codigo-fonte publico.
+# Ainda nao compila nem produz um PKG.
+version: 2.1
+
+jobs:
+  verificar_fonte_switch:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Baixar e conferir o Orbis Eden
+          command: |
+            set -eu
+            mkdir -p /tmp/himura-switch-report
+            git clone --depth 1 https://github.com/MrKitsune9/Orbis-EDEN.git /tmp/orbis-eden
+            cd /tmp/orbis-eden
+            git rev-parse HEAD > /tmp/himura-switch-report/commit-fonte.txt
+            test -f configure-eden.sh
+            test -f package-eden.sh
+            find ci scripts toolchain -maxdepth 2 -type f | sort > /tmp/himura-switch-report/arquivos-disponiveis.txt
+            printf 'Fonte publica validada. Compilacao e PKG ainda pendentes.\n' > /tmp/himura-switch-report/status.txt
+      - store_artifacts:
+          path: /tmp/himura-switch-report
+          destination: switch-preflight
+
+workflows:
+  validar_base_switch:
+    jobs:
+      - verificar_fonte_switch:
+          filters:
+            branches:
+              only: himura-switch-ps4
