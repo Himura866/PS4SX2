@@ -89,6 +89,32 @@ test -x /usr/lib/llvm-18/bin/clang
 printf '%s\n' "SDK, tools e caminhos prontos" > "$REPORT/preparation.txt"
 
 STAGE="libcxx18"
+# upstream Orbis Eden ci/30-libcxx.sh procura __linux__ nos 120 primeiros
+# caracteres/linhas, mas LLVM 18.1.8 usa __has_include(<sys/sendfile.h>).
+# No PS4 (__ORBIS__), sendfile segue a API FreeBSD, nao a API Linux:
+# altere somente a condicao de selecao dentro da fonte baixada.
+python3 - "$ROOT" <<'PYLIBCXX'
+from pathlib import Path
+import sys
+script = Path(sys.argv[1]) / "ci/30-libcxx.sh"
+src = script.read_text()
+start = src.index("    # the Linux sendfile condition near the top of the file")
+end = src.index('\nfi\nstep "configure + build"', start)
+fixed = """    python3 - "$F" <<'PYFIX'
+from pathlib import Path
+import sys
+file = Path(sys.argv[1])
+src = file.read_text()
+original = '#if __has_include(<sys/sendfile.h>)'
+patched = '#if __has_include(<sys/sendfile.h>) && !defined(__ORBIS__)'
+if original in src:
+    file.write_text(src.replace(original, patched, 1))
+elif patched not in src:
+    raise SystemExit('HIMURA: sendfile condition mismatch in libcxx18')
+print('HIMURA: sendfile guard adapted to PS4 libcxx18')
+PYFIX"""
+script.write_text(src[:start] + fixed + src[end:])
+PYLIBCXX
 (cd "$ROOT" && bash ci/30-libcxx.sh)
 STAGE="openssl-ffmpeg"
 (cd "$ROOT" && bash ci/40-openssl-ffmpeg.sh)
