@@ -1,88 +1,31 @@
-# HIMURA SWITCH PS4 | CI experimental (Linux)
-# R06, R07 e R08 rodam em branches separadas. Nenhum job usa GitHub Actions.
-# Aprovacao do job nao garante jogos compativeis nem boot no console.
+# HIMURA SWITCH PS4 — R09 boot diagnostics (CircleCI only)
+# Branch isolation preserves R08, R07 and all PS2 projects.
 version: 2.1
-
 jobs:
-  compilar_eden_ps4:
-    docker:
-      - image: ubuntu:24.04
-    resource_class: medium
-    steps:
-      - run:
-          name: Preparar ferramentas Linux para checkout
-          command: |
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update -qq
-            apt-get install -y -qq ca-certificates curl git openssh-client
-      - checkout
-      - run:
-          name: Instalar compilador LLVM 18 e dependencias do PS4
-          no_output_timeout: 20m
-          command: |
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get install -y -qq build-essential clang-18 lld-18 llvm-18 llvm-18-dev \
-              cmake ninja-build glslang-tools spirv-tools python3-pil python3 \
-              unzip p7zip-full perl make pkg-config nasm ccache libssl-dev zlib1g-dev
-            /usr/lib/llvm-18/bin/clang --version | head -1
-      - run:
-          name: Construir Eden / ELF / PKG PS4 e registrar falhas
-          no_output_timeout: 45m
-          command: bash ci/himura-switch-build.sh
-      - store_artifacts:
-          path: switch-build-reports
-          destination: switch-build-reports
-      - store_artifacts:
-          path: switch-build-pkgs
-          destination: switch-build-pkgs
-
-  validar_eden4_menu:
-    docker:
-      - image: ubuntu:24.04
-    resource_class: medium
-    steps:
-      - checkout
-      - run:
-          name: Instalar dependencias do menu HOME (host Linux)
-          command: |
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update -qq
-            apt-get install -y -qq ca-certificates git build-essential python3 python3-pil
-      - run:
-          name: Baixar Eden4 fixado e compilar menu HOME experimental R07
-          no_output_timeout: 20m
-          command: bash ci/test-eden4-host.sh
-      - store_artifacts:
-          path: switch-r07-reports
-          destination: switch-r07-reports
-      - store_artifacts:
-          path: switch-r07-ui-preview
-          destination: switch-r07-ui-preview
-
-
-  compilar_eden4_pkg_r08:
+  compilar_eden4_pkg_r09:
     docker:
       - image: ubuntu:26.04
     resource_class: medium
     steps:
       - run:
-          name: Preparar Git e certificados para checkout
+          name: Preparar ferramentas de checkout
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
             apt-get install -y -qq ca-certificates git curl openssh-client python3
       - checkout
       - run:
-          name: Validar scripts da R08 antes das dependencias
+          name: Verificar scripts de diagnostico R09
           command: |
+            bash -n ci/build-r09-boot-diagnostics.sh
             bash -n ci/build-r08-eden4-pkg.sh
-            bash -n ci/prepare-eden4-base.sh
+            python3 -m py_compile ci/patch-r09-boot-trace.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
             python3 -m py_compile ci/patch-r08-ffmpeg-linker-shim.py
       - run:
-          name: Instalar LLVM21 e dependencias OpenOrbis Mesa Eden4
+          name: Instalar LLVM21 e dependencias do PS4
           no_output_timeout: 25m
           command: |
             export DEBIAN_FRONTEND=noninteractive
@@ -94,35 +37,22 @@ jobs:
               libssl-dev zlib1g-dev
             clang-21 --version | head -1
       - run:
-          name: Gerar HIMURA SWITCH R08 ELF e PKG experimental
+          name: Gerar HIMURA SWITCH PS4 R09 PKG de diagnostico
           no_output_timeout: 45m
           command: |
             export JOBS=2
-            bash ci/build-r08-eden4-pkg.sh
+            bash ci/build-r09-boot-diagnostics.sh
       - store_artifacts:
-          path: switch-r08-reports
-          destination: switch-r08-reports
+          path: switch-r09-reports
+          destination: switch-r09-reports
       - store_artifacts:
-          path: switch-r08-pkgs
-          destination: switch-r08-pkgs
+          path: switch-r09-pkgs
+          destination: switch-r09-pkgs
 
 workflows:
-  tentar_compilacao_switch:
+  diagnosticar_boot_r09:
     jobs:
-      - compilar_eden_ps4:
+      - compilar_eden4_pkg_r09:
           filters:
             branches:
-              only: himura-switch-ps4
-  estudar_base_eden4_r07:
-    jobs:
-      - validar_eden4_menu:
-          filters:
-            branches:
-              only: himura-switch-base-eden4
-
-  tentar_pkg_switch_r08:
-    jobs:
-      - compilar_eden4_pkg_r08:
-          filters:
-            branches:
-              only: himura-switch-r08-pkg
+              only: himura-switch-r09-boot-diagnostics
