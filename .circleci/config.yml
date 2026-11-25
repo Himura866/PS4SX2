@@ -1,5 +1,5 @@
 # HIMURA SWITCH PS4 | CI experimental (Linux)
-# Disparo manual na branch himura-switch-ps4.
+# R06, R07 e R08 rodam em branches separadas. Nenhum job usa GitHub Actions.
 # Aprovacao do job nao garante jogos compativeis nem boot no console.
 version: 2.1
 
@@ -59,6 +59,50 @@ jobs:
           path: switch-r07-ui-preview
           destination: switch-r07-ui-preview
 
+
+  compilar_eden4_pkg_r08:
+    docker:
+      - image: ubuntu:26.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Preparar Git e certificados para checkout
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates git curl openssh-client
+      - checkout
+      - run:
+          name: Validar scripts da R08 antes das dependencias
+          command: |
+            bash -n ci/build-r08-eden4-pkg.sh
+            bash -n ci/prepare-eden4-base.sh
+            python3 -m py_compile ci/patch-eden4-credits.py
+      - run:
+          name: Instalar LLVM21 e dependencias OpenOrbis Mesa Eden4
+          no_output_timeout: 25m
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y -qq build-essential clang-21 lld-21 llvm-21 \\
+              llvm-21-dev libclang-rt-21-dev cmake ninja-build make nasm \\
+              autoconf automake libtool pkg-config git curl patch xz-utils \\
+              zstd python3 python3-pil python3-venv python3-mako python3-yaml \\
+              meson glslang-tools libdrm-dev libxml2-16 unzip \\
+              libssl-dev zlib1g-dev
+            clang-21 --version | head -1
+      - run:
+          name: Gerar HIMURA SWITCH R08 ELF e PKG experimental
+          no_output_timeout: 45m
+          command: |
+            export JOBS=2
+            bash ci/build-r08-eden4-pkg.sh
+      - store_artifacts:
+          path: switch-r08-reports
+          destination: switch-r08-reports
+      - store_artifacts:
+          path: switch-r08-pkgs
+          destination: switch-r08-pkgs
+
 workflows:
   tentar_compilacao_switch:
     jobs:
@@ -72,3 +116,10 @@ workflows:
           filters:
             branches:
               only: himura-switch-base-eden4
+
+  tentar_pkg_switch_r08:
+    jobs:
+      - compilar_eden4_pkg_r08:
+          filters:
+            branches:
+              only: himura-switch-r08-pkg
