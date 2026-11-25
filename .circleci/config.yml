@@ -38,6 +38,7 @@ jobs:
             python3 -m py_compile ci/patch-r10-boot-trace.py
             python3 -m py_compile ci/patch-r10-switch-toolbar.py
             python3 -m py_compile ci/patch-r11-samurai-library.py
+            python3 -m py_compile ci/patch-r11-theme-cache.py
             python3 -m py_compile ci/patch-r11-autocovers.py
             python3 -m py_compile ci/patch-r11-fps.py
             python3 -m py_compile ci/generate-r11-branding.py
@@ -78,7 +79,9 @@ workflows:
       - validar_r11_antes_do_pkg:
           filters:
             branches:
-              only: himura-switch-r11-samurai-library
+              only:
+                - himura-switch-r11-samurai-library
+                - himura-switch-r11-performance-staging
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg

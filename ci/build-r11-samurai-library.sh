@@ -24,6 +24,7 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-eden4-credits.py "$EDEN"\n'
      '  python3 ci/patch-r10-switch-toolbar.py "$EDEN"\n'
      '  python3 ci/patch-r11-samurai-library.py "$EDEN"\n'
+     '  python3 ci/patch-r11-theme-cache.py "$EDEN"\n'
      '  python3 ci/patch-r11-autocovers.py "$EDEN"\n'
      '  python3 ci/patch-r11-fps.py "$EDEN"\n'
      '  python3 ci/generate-r11-branding.py "$EDEN"\n'

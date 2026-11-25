@@ -80,8 +80,15 @@ void R11InitFps(Frame& f, const Device& device) {
         .sharingMode=VK_SHARING_MODE_EXCLUSIVE
     };
     if (api.vkCreateBuffer(dev,&create,nullptr,&f.fps_buffer)!=VK_SUCCESS) return;
-    VkMemoryRequirements requirements{};
-    api.vkGetBufferMemoryRequirements(dev,f.fps_buffer,&requirements);
+    // Eden4 only exposes vkGetBufferMemoryRequirements2 in DeviceDispatch.
+    // Query the requirements through its supported Vulkan 1.1 entry point.
+    VkMemoryRequirements2 requirements2{.sType=VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2};
+    const VkBufferMemoryRequirementsInfo2 query{
+        .sType=VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,
+        .buffer=f.fps_buffer
+    };
+    api.vkGetBufferMemoryRequirements2(dev,&query,&requirements2);
+    const VkMemoryRequirements& requirements=requirements2.memoryRequirements;
     const auto props=device.GetPhysical().GetMemoryProperties().memoryProperties;
     u32 type=props.memoryTypeCount;
     for(u32 i=0;i<props.memoryTypeCount;++i) {
