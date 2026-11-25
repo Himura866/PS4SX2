@@ -65,6 +65,44 @@ for name in ("himura_about", "himura_credits"):
         print(f"HIMURA R07: {name} preview validado {image.size}")
 PYVERIFY
 sha256sum "$OUT/himura_about.png" "$OUT/himura_credits.png" > "$REPORT/preview-checksums.txt"
+
+# Galeria compacta feita com as capturas reais do preview Linux.
+# NAO sao prints de um PKG instalado no PS4; identificacao gravada na imagem.
+STAGE="montar-galeria"
+python3 - "$OUT" <<'PYGALLERY'
+from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
+import sys
+out = Path(sys.argv[1])
+screens = [
+    ("home", "Tela inicial"),
+    ("library", "Biblioteca"),
+    ("settings", "Configuracoes"),
+    ("himura_about", "Sobre"),
+    ("himura_credits", "Creditos e licencas"),
+    ("controllers", "Controles"),
+]
+w, h, top, label_h = 640, 360, 56, 40
+sheet = Image.new("RGB", (w * 2, (h + label_h) * 3 + top), (20, 24, 32))
+draw = ImageDraw.Draw(sheet)
+draw.text((16, 16), "HIMURA SWITCH PS4 - R07  |  PREVIA LINUX - NAO TESTADO NO PS4", fill="white")
+for i, (filename, label) in enumerate(screens):
+    path = out / (filename + ".png")
+    if not path.is_file():
+        raise SystemExit("Captura obrigatoria ausente na galeria: " + path.name)
+    with Image.open(path) as src:
+        if src.size != (1920, 1080):
+            raise SystemExit("Captura inesperada: " + path.name)
+        thumb = src.convert("RGB").resize((w, h), Image.Resampling.LANCZOS)
+    x, y = (i % 2) * w, top + (i // 2) * (h + label_h)
+    sheet.paste(thumb, (x, y))
+    draw.rectangle([x, y + h, x + w - 1, y + h + label_h - 1], fill=(32, 38, 49))
+    draw.text((x + 12, y + h + 12), label, fill="white")
+sheet.save(out / "himura-r07-galeria.jpg", quality=88, optimize=True)
+print("Galeria criada:", out / "himura-r07-galeria.jpg")
+PYGALLERY
+test -s "$OUT/himura-r07-galeria.jpg"
+
 find "$OUT" -maxdepth 1 -name '*.png' -printf '%f\n' | sort >> "$REPORT/preview-summary.txt"
 echo "Menu HOME preview: $COUNT imagens PNG geradas"
 STAGE="preview-concluido"
