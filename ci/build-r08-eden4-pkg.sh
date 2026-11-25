@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # HIMURA SWITCH PS4 R08: PS4 cross-build from pinned Eden4. No console testing.
+# R06/R07 untouched. Requires a disposable Ubuntu 26.04 x86-64 CI runner.
 set -Eeuo pipefail
 BASE="$(pwd)"
 EDEN="$BASE/.himura-bases/eden4"
@@ -21,8 +22,15 @@ on_exit() {
   set +e
   printf 'stage=%s\nexit_code=%s\n' "$STAGE" "$code" > "$REPORT/result.txt"
   if [ "$code" -ne 0 ]; then
-    grep -inE 'fatal error:|error:|FAILED:|CMake Error|ninja:.*stop|Traceback|No such file' \
-      "$REPORT/$STAGE.log" 2>/dev/null | tail -45 > "$REPORT/ERRO-PRINCIPAL.txt" || true
+    local error_log="$REPORT/$STAGE.log"
+    {
+      printf 'R08 FALHOU: etapa=%s codigo=%s\n' "$STAGE" "$code"
+      printf 'Log: %s\n' "$error_log"
+      grep -inE 'fatal error:|error:|FAILED:|CMake Error|ninja:.*stop|Traceback|No such file|missing|ERROR|failed' "$error_log" 2>/dev/null | head -45 || true
+      printf '\nUltimas 30 linhas:\n'
+      tail -30 "$error_log" 2>/dev/null || true
+    } > "$REPORT/ERRO-PRINCIPAL.txt"
+    cat "$REPORT/ERRO-PRINCIPAL.txt"
   fi
   du -sh "$PS4_BUILD_ROOT" > "$REPORT/build-size.txt" 2>/dev/null || true
 }
@@ -51,6 +59,7 @@ prepare_source() {
   bash ci/prepare-eden4-base.sh "$EDEN"
   git -C "$EDEN" rev-parse HEAD > "$REPORT/eden4-source-commit.txt"
   python3 ci/patch-eden4-credits.py "$EDEN"
+  git -C "$EDEN" diff --stat > "$REPORT/patches-aplicados.txt"
   python3 - "$EDEN/eden/ps4/build.sh" <<'PY'
 from pathlib import Path
 import sys
@@ -66,6 +75,7 @@ install_sdk() {
   python3 "$EDEN/tools/pacbrew/install-pacbrew.py"
   test -s "$OPENORBIS/ps4vars.sh"
   test -x "$OPENORBIS/bin/linux/PkgTool.Core"
+  test -x "$OPENORBIS/bin/linux/create-fself" || test -x "$OPENORBIS/bin/create-fself"
   echo "PacBrew tools available"
 }
 
@@ -106,6 +116,8 @@ build_pkg() {
   cp "$obj/eden-ps4.oelf" "$PKGS/HIMURA_SWITCH_PS4_R08.oelf"
   sha256sum "$PKGS"/* > "$REPORT/output-sha256.txt"
   ls -lh "$PKGS" > "$REPORT/output-list.txt"
+  printf 'base=Eden4\nsource_commit=%s\nbranch=%s\nps4_title_id=%s\nversion=%s\n' \
+    "$(cat "$REPORT/eden4-source-commit.txt")" "${CIRCLE_BRANCH:-local}" "$EDEN4_TITLE_ID" "$EDEN4_VERSION" > "$REPORT/build-manifest.txt"
 }
 
 stage 01_host check_host
