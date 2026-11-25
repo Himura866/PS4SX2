@@ -73,8 +73,8 @@ renderer=(root/"eden/src/video_core/renderer_vulkan/vk_present_manager.cpp").rea
 dispatch=(root/"eden/src/video_core/vulkan_common/vulkan_wrapper.h").read_text()
 assert "api.vkGetBufferMemoryRequirements2(" in renderer, "R11 must query buffer memory with Vulkan 1.1"
 assert "api.vkGetBufferMemoryRequirements(" not in renderer, "obsolete Vulkan call must be absent"
-used=set(re.findall(r"api\\.(vk[A-Za-z0-9_]+)\\s*\\(",renderer))
-available=set(re.findall(r"PFN_(vk[A-Za-z0-9_]+)\\s+\\1",dispatch))
+used=set(re.findall(r"api\.(vk[A-Za-z0-9_]+)\s*\(",renderer))
+available=set(re.findall(r"PFN_(vk[A-Za-z0-9_]+)\s+\1",dispatch))
 missing=sorted(used-available)
 if missing:
     raise RuntimeError("R11 Vulkan dispatcher has no such methods: "+", ".join(missing))
