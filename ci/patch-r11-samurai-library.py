@@ -64,6 +64,8 @@ void DrawR11Backdrop(Canvas& c) {
     c.StrokeRoundRect(72, 350, 1780, 440, 25, 2, {0x9e182a}, 0.33f);
     c.Text("HIMURA", 70, 93, 40, {0xf5f6fb});
     c.Text("SWITCH PS4  |  R11", 73, 135, 28, {0xff3b4d});
+    // Personalisation label visible in the live HOME and its UI preview.
+    c.Text("POD DO HIMURA", 73, 172, 21, {0xf2cbd2});
 }
 
 // Lightweight focus neon: red/blue ring + a moving highlight around one game.
