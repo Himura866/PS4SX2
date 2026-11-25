@@ -25,6 +25,7 @@ jobs:
             python3 -m py_compile ci/patch-r11-autocovers.py
             python3 -m py_compile ci/patch-r11-fps.py
             python3 -m py_compile ci/generate-r11-branding.py
+            python3 -m py_compile ci/patch-r11-authorship.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
