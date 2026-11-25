@@ -69,6 +69,7 @@ prepare_source() {
   python3 ci/patch-eden4-credits.py "$EDEN"
   python3 ci/restore-r08-audio.py "$EDEN"
   python3 ci/patch-r08-ffmpeg-link.py "$EDEN"
+  python3 ci/patch-r08-ffmpeg-linker-shim.py "$EDEN"
   git -C "$EDEN" diff --stat > "$REPORT/patches-aplicados.txt"
   python3 - "$EDEN/eden/ps4/build.sh" <<'PY'
 from pathlib import Path
@@ -149,6 +150,26 @@ ps4_link_smoke() {
   echo "R08: PS4 C compile and link smoke test OK"
 }
 stage 06b_ps4_link_smoke ps4_link_smoke
+# The FFmpeg configure test supplies an extra PacBrew link.x on top of ps4-cc.
+# Reproduce the actual cross-link command BEFORE expensive Mesa compilation.
+ffmpeg_link_smoke() {
+  local dir="$PS4_BUILD_ROOT/ffmpeg-link-smoke"
+  mkdir -p "$dir"
+  printf 'int main(void) { return 0; }\n' > "$dir/main.c"
+  . "$EDEN/runtime/toolchain/env.sh"
+  test -x "$EDEN/runtime/toolchain/bin/ps4-ffmpeg-ld"
+  "$EDEN/runtime/toolchain/bin/ps4-ffmpeg-ld" \
+    --target=x86_64-pc-freebsd12-elf -fuse-ld=lld \
+    -Wl,-melf_x86_64 -Wl,-pie -Wl,--script="$OPENORBIS/link.x" \
+    -Wl,--eh-frame-hdr -L"$OPENORBIS/lib" -L"$OPENORBIS/usr/lib" \
+    -lc -lclang_rt.builtins-x86_64 -lkernel -lSceLibcInternal \
+    -nostdlib --sysroot="$OPENORBIS" \
+    -o "$dir/ffmpeg-test.elf" "$dir/main.c" \
+    -lkernel -lSceUserService -lSceSysmodule -lSceNet -lSceLibcInternal
+  test -s "$dir/ffmpeg-test.elf"
+  echo "R08: FFmpeg-style PS4 cross-link smoke test OK"
+}
+stage 06c_ffmpeg_link_smoke ffmpeg_link_smoke
 stage 07_mesa_source fetch_mesa
 stage 08_mesa_build bash "$EDEN/runtime/scripts/build-mesa.sh" setup
 stage 09_eden_pkg build_pkg
