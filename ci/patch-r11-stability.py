@@ -37,8 +37,8 @@ def main(root):
     # user already chose Docked, LoadOptions() preserves that preference.
     s=once(s,
         '{"docked", "Console mode",\n'
-        '      "Docked: games render at up to 1080p. Handheld: 720p, less GPU work and memory (faster).", "display",\n'
-        '      {{"1", "Docked"}, {"0", "Handheld"}}},',
+        '     "Docked: games render at up to 1080p. Handheld: 720p, less GPU work and memory (faster).", "display",\n'
+        '     {{"1", "Docked"}, {"0", "Handheld"}}},',
         '{"docked", "Console mode",\n'
         '      "R11 default: Handheld saves memory and GPU work. Docked remains optional.", "display",\n'
         '      {{"0", "Handheld (stable)"}, {"1", "Docked"}}},',
