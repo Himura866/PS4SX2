@@ -142,6 +142,10 @@ def patch_source(s):
         '// No icon (homebrew, or not read yet): the title on a plain tile.',
         '// No cached icon: show the actual game title without inventing a game cover.',
         "placeholder policy")
+    s = once(s,
+        'st.strip_target = std::clamp((st.game_focus - 3) * TileStep, 0.0f, std::max(0, tiles - 4) * TileStep);',
+        'st.strip_target = std::clamp((st.game_focus - 4) * TileStep, 0.0f, std::max(0, tiles - 5) * TileStep);',
+        "five game slots before scrolling")
     # Visual checks: no interaction branch or launch path changed.
     for action in ('st.about_return = Screen::Home; open(Screen::About);',
                    'case 1: st.file_row = 0; open(Screen::Files);',
