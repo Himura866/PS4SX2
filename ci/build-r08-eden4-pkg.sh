@@ -59,6 +59,7 @@ prepare_source() {
   bash ci/prepare-eden4-base.sh "$EDEN"
   git -C "$EDEN" rev-parse HEAD > "$REPORT/eden4-source-commit.txt"
   python3 ci/patch-eden4-credits.py "$EDEN"
+  python3 ci/restore-r08-audio.py "$EDEN"
   git -C "$EDEN" diff --stat > "$REPORT/patches-aplicados.txt"
   python3 - "$EDEN/eden/ps4/build.sh" <<'PY'
 from pathlib import Path
