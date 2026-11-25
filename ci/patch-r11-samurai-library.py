@@ -65,6 +65,29 @@ void DrawR11Backdrop(Canvas& c) {
     c.Text("HIMURA", 70, 93, 40, {0xf5f6fb});
     c.Text("SWITCH PS4  |  R11", 73, 135, 28, {0xff3b4d});
 }
+
+// Lightweight focus neon: red/blue ring + a moving highlight around one game.
+// The original Cross/Options game actions and carousel physics stay unchanged.
+void R11NeonCover(Canvas& c, float left, float top, float size, float time) {
+    const float pulse = 0.72f + 0.28f * std::sin(time * 4.7f);
+    c.StrokeRoundRect(left - 9, top - 9, size + 18, size + 18, 14, 7, {0xe51c44}, 0.20f * pulse);
+    c.StrokeRoundRect(left - 5, top - 5, size + 10, size + 10, 12, 3, {0xff3e60}, 0.90f);
+    c.StrokeRoundRect(left - 2, top - 2, size + 4, size + 4, 9, 1.5f, {0x5cc9ff}, 0.8f);
+    const float edge = std::fmod(std::max(0.0f, time) * 220.0f, 4.0f * size);
+    const float glow = 46.0f;
+    if (edge < size) {
+        c.HLine(left + edge, left + std::min(size, edge + glow), top - 5, 5, {0xffffff}, 0.98f);
+    } else if (edge < 2.0f * size) {
+        const float y = edge - size;
+        c.VLine(left + size + 5, top + y, top + std::min(size, y + glow), 5, {0xffffff}, 0.98f);
+    } else if (edge < 3.0f * size) {
+        const float x = edge - 2.0f * size;
+        c.HLine(left + size - std::min(size,x + glow), left + size - x, top + size + 5, 5, {0xffffff}, 0.98f);
+    } else {
+        const float y = edge - 3.0f * size;
+        c.VLine(left - 5, top + size - std::min(size,y + glow), top + size - y, 5, {0xffffff}, 0.98f);
+    }
+}
 """
 
 def patch_source(s):
@@ -138,6 +161,10 @@ def patch_source(s):
         'constexpr float barLeft = 703.0f, barTop = 42.0f;\n'
         '        constexpr float barStep = 177.0f, barWidth = 158.0f, barHeight = 118.0f;',
         "toolbar beside HIMURA logo")
+    s = once(s,
+        'if (focused) FocusRect(x, left, TileTop, TileSize, TileSize);',
+        'if (focused) R11NeonCover(canvas, left, TileTop, TileSize, st.time);',
+        "selected game neon")
     s = once(s,
         '// No icon (homebrew, or not read yet): the title on a plain tile.',
         '// No cached icon: show the actual game title without inventing a game cover.',
