@@ -17,8 +17,8 @@ PREVIEW_PATCHES = json.loads("[[\"    shot(\\\"settings_system\\\", {Down, Right
 # <cmath> but not <algorithm>; GCC on CircleCI therefore fails compilation.
 # Make this explicit rather than relying on transitive C++ headers.
 PREVIEW_PATCHES.insert(0, (
-    "#include <cmath>\\n",
-    "#include <algorithm>\\n#include <cmath>\\n",
+    "#include <cmath>\n",
+    "#include <algorithm>\n#include <cmath>\n",
 ))
 
 def patch_file(path, edits):
