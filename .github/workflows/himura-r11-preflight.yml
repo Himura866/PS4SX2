@@ -1,0 +1,90 @@
+name: HIMURA R11 preflight
+on:
+  push:
+    branches:
+      - himura-switch-r11-samurai-library
+    paths:
+      - 'ci/**'
+      - '.circleci/config.yml'
+      - '.github/workflows/himura-r11-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install art tooling
+        run: python3 -m pip install --break-system-packages Pillow
+      - name: Syntax check R11 patch scripts
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/patch-r10-boot-trace.py ci/patch-r10-switch-toolbar.py \
+            ci/patch-eden4-credits.py ci/patch-r11-samurai-library.py \
+            ci/patch-r11-autocovers.py ci/patch-r11-fps.py ci/patch-r11-authorship.py \
+            ci/patch-r11-stability.py ci/generate-r11-branding.py
+          bash -n ci/build-r11-samurai-library.sh
+      - name: Fetch pinned base source for exact patch smoke test
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          sha='fab246cbac93c7995aaf451dca83ae93ba0bd234'
+          paths=[
+            'eden/src/yuzu_ps4/ui_launcher.cpp',
+            'eden/src/yuzu_ps4/ui_metadata.cpp',
+            'eden/src/yuzu_ps4/main.cpp',
+            'eden/src/common/ps4_diagnostics.h',
+            'eden/src/video_core/renderer_vulkan/vk_present_manager.cpp',
+            'eden/src/video_core/renderer_vulkan/vk_present_manager.h',
+            'eden/ps4/ui-preview/preview.cpp',
+            'eden/ps4/build.sh',
+          ]
+          for path in paths:
+            output=Path('.r11-smoke/eden4')/path
+            output.parent.mkdir(parents=True,exist_ok=True)
+            url=f'https://raw.githubusercontent.com/xatyy/Eden4/{sha}/{path}'
+            output.write_bytes(urlopen(url,timeout=30).read())
+            print('Fetched',path,flush=True)
+          PY
+      - name: Apply complete R11 patch stack and produce branding
+        run: |
+          set -euo pipefail
+          root=".r11-smoke/eden4"
+          python3 ci/patch-eden4-credits.py "$root"
+          python3 ci/patch-r10-switch-toolbar.py "$root"
+          python3 ci/patch-r11-samurai-library.py "$root"
+          python3 ci/patch-r11-autocovers.py "$root"
+          python3 ci/patch-r11-fps.py "$root"
+          python3 ci/generate-r11-branding.py "$root"
+          python3 ci/patch-r11-authorship.py "$root"
+          python3 ci/patch-r10-boot-trace.py "$root"
+          python3 ci/patch-r11-stability.py "$root"
+          test -s "$root/branding/icon0.png"
+          test -s "$root/branding/pic1.png"
+          grep -Fq "POD DO HIMURA" "$root/eden/src/yuzu_ps4/ui_launcher.cpp"
+          grep -Fq "R11GameCheckpoint" "$root/eden/src/yuzu_ps4/main.cpp"
+          grep -Fq "R11PaintFps" "$root/eden/src/video_core/renderer_vulkan/vk_present_manager.cpp"
+      - name: Validate generated R11 package recipe without compiling
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,sys
+          script=Path('ci/build-r11-samurai-library.sh').read_text()
+          helper=script.split("<<'PY'\\n",1)[1].split("\\nPY\\n",1)[0]
+          subprocess.run([sys.executable,'-','ci/build-r08-eden4-pkg.sh','ci/.r11-build-generated.sh'],
+                         input=helper,text=True,check=True)
+          PY
+          bash -n ci/.r11-build-generated.sh
+          grep -Fq 'patch-r11-stability.py' ci/.r11-build-generated.sh
+          grep -Fq 'patch-r11-fps.py' ci/.r11-build-generated.sh
+          grep -Fq 'generate-r11-branding.py' ci/.r11-build-generated.sh
+          echo 'R11 source patches and recipe validated (not a PKG compilation)'
