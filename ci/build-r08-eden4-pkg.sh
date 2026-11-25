@@ -23,6 +23,14 @@ on_exit() {
   printf 'stage=%s\nexit_code=%s\n' "$STAGE" "$code" > "$REPORT/result.txt"
   if [ "$code" -ne 0 ]; then
     local error_log="$REPORT/$STAGE.log"
+    # FFmpeg's precise cross-link error lives in ffbuild/config.log, not ninja stdout.
+    local ffconfig="$PS4_BUILD_ROOT/build/eden/_deps/ffmpeg-build/ffbuild/config.log"
+    if [ -s "$ffconfig" ]; then
+      cp "$ffconfig" "$REPORT/ffmpeg-config.log"
+      echo "FFmpeg cross-link diagnostics (last errors):"
+      grep -inE 'error:|not found|undefined|cannot|failed|ld.lld|clang.*error' "$ffconfig" 2>/dev/null | tail -55 || true
+      tail -60 "$ffconfig" | tail -c 14000 || true
+    fi
     {
       printf 'R08 FALHOU: etapa=%s codigo=%s\n' "$STAGE" "$code"
       printf 'Log: %s\n' "$error_log"
@@ -127,6 +135,19 @@ stage 03_sdk_download python3 "$EDEN/tools/pacbrew/fetch-pacbrew.py"
 stage 04_sdk_install install_sdk
 stage 05_libcxx bash "$EDEN/runtime/toolchain/build-libcxx.sh"
 stage 06_runtime bash "$EDEN/runtime/toolchain/build-runtime.sh"
+# Detect a broken PS4 C linker early rather than spending 20+ minutes rebuilding Mesa.
+ps4_link_smoke() {
+  local dir="$PS4_BUILD_ROOT/ps4-link-smoke"
+  mkdir -p "$dir"
+  printf 'int main(void) { return 0; }\\n' > "$dir/main.c"
+  . "$EDEN/runtime/toolchain/env.sh"
+  bash "$EDEN/runtime/toolchain/bin/ps4-cc" -c "$dir/main.c" -o "$dir/main.o"
+  test -s "$dir/main.o"
+  bash "$EDEN/runtime/toolchain/bin/ps4-cc" "$dir/main.c" -o "$dir/ps4-link-test.elf"
+  test -s "$dir/ps4-link-test.elf"
+  echo "R08: PS4 C compile and link smoke test OK"
+}
+stage 06b_ps4_link_smoke ps4_link_smoke
 stage 07_mesa_source fetch_mesa
 stage 08_mesa_build bash "$EDEN/runtime/scripts/build-mesa.sh" setup
 stage 09_eden_pkg build_pkg
