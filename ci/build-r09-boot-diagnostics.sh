@@ -10,6 +10,7 @@ sed -e 's/switch-r08-reports/switch-r09-reports/g' \
     -e 's/HIMU00008/HIMU00009/g' \
     -e 's/EDEN4_VERSION="01.00"/EDEN4_VERSION="01.09"/g' \
     -e 's/R08/R09/g' \
+    -e 's/HIMURA SWITCH PS4-01.00-R09.pkg/HIMURA SWITCH PS4-01.09-R09.pkg/g' \
     -e '/python3 ci\/patch-eden4-credits.py "\$EDEN"/a\  python3 ci/patch-r09-boot-trace.py "$EDEN"' \
     "$src" > "$dst"
 grep -q 'EDEN4_TITLE_ID="HIMU00009"' "$dst"
