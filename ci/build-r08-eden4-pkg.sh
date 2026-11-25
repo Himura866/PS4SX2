@@ -139,7 +139,7 @@ stage 06_runtime bash "$EDEN/runtime/toolchain/build-runtime.sh"
 ps4_link_smoke() {
   local dir="$PS4_BUILD_ROOT/ps4-link-smoke"
   mkdir -p "$dir"
-  printf 'int main(void) { return 0; }\\n' > "$dir/main.c"
+  printf 'int main(void) { return 0; }\n' > "$dir/main.c"
   . "$EDEN/runtime/toolchain/env.sh"
   bash "$EDEN/runtime/toolchain/bin/ps4-cc" -c "$dir/main.c" -o "$dir/main.o"
   test -s "$dir/main.o"
