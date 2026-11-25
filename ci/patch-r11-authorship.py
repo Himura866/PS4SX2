@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R11 attribution without removing upstream credits or overriding copyleft licenses.
 
-The chosen 'HIMURA' is the project alias, NOT an assertion that a legal
+The credited alias 'POD DO HIMURA' is not an assertion that a legal
 registration occurred. Verify personal nickname/legal ownership separately.
 """
 from pathlib import Path
@@ -14,7 +14,7 @@ def once(text, old, new, label):
 
 ATTRIBUTION = """HIMURA SWITCH PS4 — R11 SAMURAI EDITION
 Identidade da distribuicao: HIMURA.
-Apelido exibido: HIMURA (substituivel por apelido autorizado pelo titular).
+Apelido exibido nos creditos: POD DO HIMURA.
 
 Personalizacao original do projeto HIMURA: proposta visual, layout do menu,
 identidade grafica samurai, carrossel, destaques neon e integracoes especificas
@@ -47,7 +47,7 @@ def main(root):
     source=once(source,
         "constexpr CreditEntry HimuraCredits[] = {",
         'constexpr CreditEntry HimuraCredits[] = {\n'
-        '    {"HIMURA", "Identidade e personalizacoes originais desta R11; nao inclui autoria do Eden4/Eden", '
+        '    {"POD DO HIMURA", "Identidade e personalizacoes originais desta R11; nao inclui autoria do Eden4/Eden", '
         '"Contribuicoes originais, direitos reservados conforme aplicavel", "HIMURA SWITCH PS4 R11"},',
         "credit entry")
     source=once(source,
@@ -56,7 +56,7 @@ def main(root):
         "version label")
     source=once(source,
         '"Codigo aberto e agradecimentos - base experimental Eden4"',
-        '"HIMURA R11 - autoria da personalizacao e creditos da base Eden4"',
+        '"POD DO HIMURA - personalizacao R11; creditos da base Eden4"',
         "credits summary")
     launcher.write_text(source, encoding="utf8")
 
@@ -71,7 +71,7 @@ def main(root):
     branding=root/"branding"
     branding.mkdir(parents=True,exist_ok=True)
     (branding/"HIMURA-ATTRIBUTION.txt").write_text(ATTRIBUTION,encoding="utf8")
-    print("R11: included HIMURA attribution with original upstream credits and licenses")
+    print("R11: credited POD DO HIMURA with original upstream credits and licenses")
 
 if __name__=="__main__":
     if len(sys.argv)!=2: raise SystemExit("Usage: patch-r11-authorship.py <Eden4 checkout>")
