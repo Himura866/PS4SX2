@@ -77,7 +77,7 @@ def patch_launcher(source):
     z = source.index(end, a)
     source = source[:a] + TOOLBAR + source[z:]
     # Verify that the replacement left all shortcut actions intact.
-    for action in ("case 0: open(Screen::About);",
+    for action in ("case 0: st.about_return = Screen::Home; open(Screen::About); break;",
                    "case 1: st.file_row = 0; open(Screen::Files);",
                    "case 3: st.controllers_row = 0; open(Screen::Controllers);",
                    "case 4: st.category = 0; open(Screen::Settings);",
