@@ -22,6 +22,9 @@ jobs:
             python3 -m py_compile ci/patch-r10-boot-trace.py
             python3 -m py_compile ci/patch-r10-switch-toolbar.py
             python3 -m py_compile ci/patch-r11-samurai-library.py
+            python3 -m py_compile ci/patch-r11-autocovers.py
+            python3 -m py_compile ci/patch-r11-fps.py
+            python3 -m py_compile ci/generate-r11-branding.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
@@ -39,7 +42,7 @@ jobs:
               libssl-dev zlib1g-dev
             clang-21 --version | head -1
       - run:
-          name: Gerar HIMURA SWITCH PS4 R11 PKG com barra superior
+          name: Gerar HIMURA SWITCH PS4 R11 PKG com UI, capas, FPS e XMB
           no_output_timeout: 45m
           command: |
             export JOBS=2
