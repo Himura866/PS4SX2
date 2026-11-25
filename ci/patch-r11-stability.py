@@ -30,9 +30,9 @@ def main(root):
     p=root/"eden/src/yuzu_ps4/main.cpp"
     s=p.read_text(encoding="utf8")
     s=once(s,
-        'namespace {\nconstexpr char Version[] = "1.0";',
-        'namespace {\n'+TRACE+'\nconstexpr char Version[] = "1.0";',
-        "trace helper before boot trace")
+        'constexpr char Version[] = "1.0";',
+        TRACE+'\nconstexpr char Version[] = "1.0";',
+        "trace helper after boot trace")
     # Default to Handheld (720p guest resolution) for NEW settings files. If
     # user already chose Docked, LoadOptions() preserves that preference.
     s=once(s,
