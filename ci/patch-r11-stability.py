@@ -45,7 +45,7 @@ def main(root):
         "safe default mode")
     s=once(s,
         '    LOG_INFO(Frontend, "Launching {}", game.path);',
-        '    R11GameCheckpoint("launch begin",game.path,true);\n'
+        '    R11GameCheckpoint("launch begin",game.path.c_str(),true);\n'
         '    LOG_INFO(Frontend, "Launching {}", game.path);',
         "launch trace")
     s=once(s,
