@@ -20,15 +20,20 @@ on_exit() {
   # Diagnostico resumido para telas pequenas: coletar a PRIMEIRA mensagem
   # real de erro do compilador, nao apenas o ultimo 'exit 1'.
   if [ "$result" -ne 0 ]; then
+    # O tee global pode ainda estar finalizando ao disparar EXIT.
+    # O log da etapa é fechado e sincronizado antes do diagnostico.
+    error_source="$REPORT/$STAGE.log"
+    if [ ! -s "$error_source" ]; then error_source="$REPORT/build.log"; fi
     {
-      echo "HIMURA SWITCH PS4 - diagnostico de erro (R04)"
+      echo "HIMURA SWITCH PS4 - diagnostico de erro (R06)"
+      printf 'log_analisado=%s\n' "$error_source"
       printf 'stage=%s exit_code=%s\n' "$STAGE" "$result"
       echo "PRIMEIRAS MENSAGENS DE ERRO:"
-      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$REPORT/build.log" | head -n 15 || true
+      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$error_source" | head -n 15 || true
       echo "ULTIMAS MENSAGENS DE ERRO:"
-      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$REPORT/build.log" | tail -n 15 || true
+      grep -nEi '(^|[[:space:]])(fatal[[:space:]]+)?error:|FAILED:|CMake Error|ninja: build stopped|Assertion failed|undefined reference' "$error_source" | tail -n 15 || true
       echo "FINAL DO LOG:"
-      tail -n 15 "$REPORT/build.log" || true
+      tail -n 25 "$error_source" || true
     } > "$REPORT/ERRO-PRINCIPAL.txt"
     echo "========== HIMURA SWITCH: ERRO RESUMIDO =========="
     cat "$REPORT/ERRO-PRINCIPAL.txt"
@@ -105,6 +110,25 @@ test -f "$ROOT/deps/OpenOrbis/samples/piglet/sce_module/libc.prx"
 test -x /usr/lib/llvm-18/bin/clang
 printf '%s\n' "SDK, tools e caminhos prontos" > "$REPORT/preparation.txt"
 
+# Registrar cada compilacao num arquivo proprio e aguardar o tee concluir.
+# Garante que ERRO-PRINCIPAL.txt consulte o log INTEGRAL da etapa falha.
+run_stage() {
+  local stage_name="$1" script_path="$2" stage_log code
+  STAGE="$stage_name"
+  stage_log="$REPORT/$stage_name.log"
+  : > "$stage_log"
+  set +e
+  (cd "$ROOT" && bash "$script_path") 2>&1 | tee "$stage_log"
+  local -a pipeline_status=("${PIPESTATUS[@]}")
+  set -e
+  code="${pipeline_status[0]}"
+  if [ "$code" -eq 0 ] && [ "${pipeline_status[1]}" -ne 0 ]; then
+    code="${pipeline_status[1]}"
+  fi
+  printf 'HIMURA etapa: %s, codigo: %s, log: %s\n' "$stage_name" "$code" "$stage_log"
+  return "$code"
+}
+
 STAGE="libcxx18"
 # upstream Orbis Eden ci/30-libcxx.sh procura __linux__ nos 120 primeiros
 # caracteres/linhas, mas LLVM 18.1.8 usa __has_include(<sys/sendfile.h>).
@@ -144,15 +168,15 @@ patched_script = patched_script.replace(
 script.write_text(patched_script)
 print('HIMURA R05: force PTHREAD thread API in libc++18 build')
 PYLIBCXX
-(cd "$ROOT" && bash ci/30-libcxx.sh)
+run_stage "libcxx18" "ci/30-libcxx.sh"
 STAGE="openssl-ffmpeg"
-(cd "$ROOT" && bash ci/40-openssl-ffmpeg.sh)
+run_stage "openssl-ffmpeg" "ci/40-openssl-ffmpeg.sh"
 STAGE="compilar-eden"
-(cd "$ROOT" && bash ci/60-eden.sh)
+run_stage "compilar-eden" "ci/60-eden.sh"
 test -s "$ROOT/build-eden/bin/eden-ps4" || { echo "ELF ausente"; exit 14; }
 cp -f "$ROOT/build-eden/bin/eden-ps4" "$PKG_ARTIFACTS/eden-ps4.elf"
 STAGE="empacotar-pkg"
-(cd "$ROOT" && bash ci/70-package.sh)
+run_stage "empacotar-pkg" "ci/70-package.sh"
 find "$ROOT/out-eden" -maxdepth 1 -type f -name '*.pkg' -size +1M -print -quit | grep -q . || {
   echo "Nenhum PKG valido gerado"
   exit 15
