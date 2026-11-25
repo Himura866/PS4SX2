@@ -78,6 +78,7 @@ jobs:
             bash -n ci/build-r08-eden4-pkg.sh
             bash -n ci/prepare-eden4-base.sh
             python3 -m py_compile ci/patch-eden4-credits.py
+            python3 -m py_compile ci/restore-r08-audio.py
       - run:
           name: Instalar LLVM21 e dependencias OpenOrbis Mesa Eden4
           no_output_timeout: 25m
