@@ -1,8 +1,8 @@
-# HIMURA SWITCH PS4 — R10 upper toolbar (CircleCI only) (CircleCI only)
+# HIMURA SWITCH PS4 — R11 upper toolbar (CircleCI only) (CircleCI only)
 # Branch isolation preserves R08, R07 and all PS2 projects.
 version: 2.1
 jobs:
-  compilar_eden4_pkg_r10:
+  compilar_eden4_pkg_r11:
     docker:
       - image: ubuntu:26.04
     resource_class: medium
@@ -15,12 +15,13 @@ jobs:
             apt-get install -y -qq ca-certificates git curl openssh-client python3
       - checkout
       - run:
-          name: Verificar scripts e menu superior R10
+          name: Verificar scripts e menu superior R11
           command: |
-            bash -n ci/build-r10-switch-toolbar.sh
+            bash -n ci/build-r11-samurai-library.sh
             bash -n ci/build-r08-eden4-pkg.sh
             python3 -m py_compile ci/patch-r10-boot-trace.py
             python3 -m py_compile ci/patch-r10-switch-toolbar.py
+            python3 -m py_compile ci/patch-r11-samurai-library.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
@@ -38,22 +39,22 @@ jobs:
               libssl-dev zlib1g-dev
             clang-21 --version | head -1
       - run:
-          name: Gerar HIMURA SWITCH PS4 R10 PKG com barra superior
+          name: Gerar HIMURA SWITCH PS4 R11 PKG com barra superior
           no_output_timeout: 45m
           command: |
             export JOBS=2
-            bash ci/build-r10-switch-toolbar.sh
+            bash ci/build-r11-samurai-library.sh
       - store_artifacts:
-          path: switch-r10-reports
-          destination: switch-r10-reports
+          path: switch-r11-reports
+          destination: switch-r11-reports
       - store_artifacts:
-          path: switch-r10-pkgs
-          destination: switch-r10-pkgs
+          path: switch-r11-pkgs
+          destination: switch-r11-pkgs
 
 workflows:
-  compilar_menu_superior_r10:
+  compilar_menu_superior_r11:
     jobs:
-      - compilar_eden4_pkg_r10:
+      - compilar_eden4_pkg_r11:
           filters:
             branches:
-              only: himura-switch-r10-top-toolbar
+              only: himura-switch-r11-samurai-library
