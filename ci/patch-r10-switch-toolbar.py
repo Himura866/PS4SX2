@@ -71,7 +71,7 @@ def patch_launcher(source):
     source = replace_once(source, NAV_OLD, NAV_NEW, "navigation")
     start = "        // Shortcut buttons.\n"
     end = "        if (!st.message.empty()) canvas.Text(st.message,"
-    if source.count(start) != 1 or source.count(end) != 1:
+    if source.count(start) != 1 or source.find(end, source.index(start)) < 0:
         raise RuntimeError("R10 toolbar: changed upstream render anchors")
     a = source.index(start)
     z = source.index(end, a)
