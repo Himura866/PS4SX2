@@ -33,6 +33,10 @@ done
 command -v c++ >/dev/null
 python3 -c 'from PIL import Image; print("Pillow disponivel")'
 
+STAGE="integrar-creditos-himura"
+python3 ci/patch-eden4-credits.py "$ROOT" 2>&1 | tee "$REPORT/credits-patch.log"
+git -C "$ROOT" diff --check
+
 STAGE="compilar-menu-home"
 bash "$ROOT/eden/ps4/ui-preview/build.sh" "$OUT" 2>&1 | tee "$REPORT/ui-preview-build.log"
 test -s "$OUT/preview" || { echo "Binario nativo preview nao foi gerado"; exit 5; }
@@ -43,6 +47,24 @@ printf 'generated_pngs=%s\n' "$COUNT" > "$REPORT/preview-summary.txt"
 if [ "$COUNT" -lt 1 ]; then
   echo "Menu compilou, mas nao gerou capturas PNG"; exit 6
 fi
+# O preview precisa visitar de verdade as telas de Sobre e Creditos.
+for image in himura_about himura_credits; do
+  test -s "$OUT/$image.png" || { echo "Captura obrigatoria ausente: $image.png"; exit 7; }
+done
+python3 - "$OUT" <<'PYVERIFY'
+from pathlib import Path
+from PIL import Image
+import sys
+root = Path(sys.argv[1])
+for name in ("himura_about", "himura_credits"):
+    with Image.open(root / (name + ".png")) as image:
+        if image.size != (1920, 1080):
+            raise SystemExit(f"{name}: imagem fora de 1920x1080: {image.size}")
+        if not image.getbbox():
+            raise SystemExit(f"{name}: imagem vazia")
+        print(f"HIMURA R07: {name} preview validado {image.size}")
+PYVERIFY
+sha256sum "$OUT/himura_about.png" "$OUT/himura_credits.png" > "$REPORT/preview-checksums.txt"
 find "$OUT" -maxdepth 1 -name '*.png' -printf '%f\n' | sort >> "$REPORT/preview-summary.txt"
 echo "Menu HOME preview: $COUNT imagens PNG geradas"
 STAGE="preview-concluido"
