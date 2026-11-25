@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""R11: read actual NSP/XCI artwork automatically, without launching the game.
+"""R11: reliable offline cover caching, without initializing a guest Core::System.
 
-Patch is applied only to a disposable, pinned Eden4 checkout in the R11 job.
-Uses Eden's own loader and game keys; no internet covers and no synthetic artwork.
+Embedded NSP/XCI icons are still cached when the original Eden loader launches
+that game. Before first launch, optional .jpg/.png sidecar art next to an NSP/XCI
+is imported automatically. The original Eden4 notes that loading NSP/XCI from
+the menu metadata worker crashed on PS4; never repeat that unsafe approach.
 """
 from pathlib import Path
 import sys
@@ -14,42 +16,45 @@ def once(s, old, new, label):
     return s.replace(old,new,1)
 
 HEADERS = r'''
-#include "core/core.h"
-#include "core/file_sys/registered_cache.h"
-#include "core/file_sys/vfs/vfs_real.h"
-#include "core/loader/loader.h"
+#include <string>
+#include <vector>
 '''
 
 EXTRACT = r'''
-// Attempt to read the container's Control NCA using the existing Eden loader.
-// No guest CPU, GPU, audio, or executable is started; results are cached on disk.
-// This runs in the existing metadata worker thread, one title at a time.
-bool ExtractFromContainer(const Metadata::Entry& entry, Info& info) {
+// R11: stable import of user-provided sidecar JPEG/PNG artwork only.
+// Never initialise the guest CPU/Core::System from the menu metadata thread:
+// Eden4 00.26 did that and crashed. The real embedded icon remains cached by
+// RunGame's Metadata::Store after the first launch (unchanged).
+bool ImportSidecar(const Metadata::Entry& entry, Info& info) {
     if (entry.path.empty()) return false;
-    try {
-        Core::System system;
-        system.SetContentProvider(std::make_unique<FileSys::ContentProviderUnion>());
-        system.SetFilesystem(std::make_shared<FileSys::RealVfsFilesystem>());
-        system.GetFileSystemController().CreateFactories(*system.GetFilesystem());
-        const auto file = system.GetFilesystem()->OpenFile(entry.path, FileSys::OpenMode::Read);
-        if (!file) return false;
-        auto loader = Loader::GetLoader(system, file);
-        if (!loader) return false;
-        std::vector<u8> icon;
-        if (loader->ReadIcon(icon) != Loader::ResultStatus::Success || icon.empty() ||
-            icon.size() >= (8u << 20)) {
-            return false;
+    const auto slash = entry.path.find_last_of('/');
+    const auto dot = entry.path.find_last_of('.');
+    const bool has_ext = dot != std::string::npos &&
+                         (slash == std::string::npos || dot > slash);
+    const std::string stem = has_ext ? entry.path.substr(0, dot) : entry.path;
+    const std::vector<std::string> candidates{
+        entry.path + ".jpg", entry.path + ".png",
+        stem + ".jpg", stem + ".jpeg", stem + ".png"
+    };
+    for (const std::string& path : candidates) {
+        FILE* file = std::fopen(path.c_str(), "rb");
+        if (!file) continue;
+        bool ok = std::fseek(file, 0, SEEK_END) == 0;
+        const long size = ok ? std::ftell(file) : -1;
+        ok = ok && size > 16 && size < (8L << 20) &&
+             std::fseek(file, 0, SEEK_SET) == 0;
+        std::vector<uint8_t> bytes;
+        if (ok) {
+            bytes.resize(static_cast<size_t>(size));
+            ok = std::fread(bytes.data(), 1, bytes.size(), file) == bytes.size();
         }
-        std::string title;
-        u64 program_id{};
-        void(loader->ReadTitle(title));
-        void(loader->ReadProgramId(program_id));
-        info = Info{std::move(title), program_id, std::move(icon)};
+        std::fclose(file);
+        if (!ok) continue;
+        // PNG/JPEG validation is performed by Ui::DecodeImage as before.
+        const std::string name = stem.substr(
+            stem.find_last_of('/') == std::string::npos ? 0 : stem.find_last_of('/') + 1);
+        info = Info{name, 0, std::move(bytes)};
         return true;
-    } catch (const std::exception& ex) {
-        LOG_WARNING(Frontend, "R11 auto icon skipped {}: {}", entry.path, ex.what());
-    } catch (...) {
-        LOG_WARNING(Frontend, "R11 auto icon skipped {}", entry.path);
     }
     return false;
 }
@@ -65,14 +70,14 @@ def main(root):
            "reader")
     s=once(s,
            '    size_t cached = 0;\n    for (size_t index = 0; index < entries.size() && !stop; ++index) {\n        const Entry& entry = entries[index];\n        Info info;\n        if (entry.path.empty() || !ReadCache(CachePath(entry), info)) continue;\n        ++cached;',
-           '    size_t cached = 0, extracted = 0;\n    for (size_t index = 0; index < entries.size() && !stop; ++index) {\n        const Entry& entry = entries[index];\n        Info info;\n        if (entry.path.empty()) continue;\n        const bool cache_hit = ReadCache(CachePath(entry), info);\n        if (cache_hit && !info.icon.empty()) {\n            ++cached;\n        } else {\n            Info from_game;\n            if (ExtractFromContainer(entry, from_game)) {\n                info = std::move(from_game);\n                WriteCache(CachePath(entry), info);\n                ++extracted;\n            } else if (cache_hit) {\n                ++cached;\n            } else {\n                continue;\n            }\n        }',
+           '    size_t cached = 0, extracted = 0;\n    for (size_t index = 0; index < entries.size() && !stop; ++index) {\n        const Entry& entry = entries[index];\n        Info info;\n        if (entry.path.empty()) continue;\n        const bool cache_hit = ReadCache(CachePath(entry), info);\n        if (cache_hit && !info.icon.empty()) {\n            ++cached;\n        } else {\n            Info from_game;\n            if (ImportSidecar(entry, from_game)) {\n                info = std::move(from_game);\n                WriteCache(CachePath(entry), info);\n                ++extracted;\n            } else if (cache_hit) {\n                ++cached;\n            } else {\n                continue;\n            }\n        }',
            "cache and fallback")
     s=once(s,
            '    LOG_INFO(Frontend, "PS4 HOME menu: {} of {} games have saved icons (the others get theirs when started)",\n             cached, entries.size());',
-           '    LOG_INFO(Frontend, "R11 covers: {} cached, {} extracted, {} games",\n             cached, extracted, entries.size());',
+           '    LOG_INFO(Frontend, "R11 covers: {} cached, {} sidecars imported, {} games",\n             cached, extracted, entries.size());',
            "log summary")
     p.write_text(s,encoding="utf8")
-    print("R11: automatic offline NSP/XCI icons patched",p)
+    print("R11: safe cached covers and local sidecars patched",p)
 
 if __name__=="__main__":
     if len(sys.argv)!=2: raise SystemExit("Usage: patch-r11-autocovers.py <checkout>")
