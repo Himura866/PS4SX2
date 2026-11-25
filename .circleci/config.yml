@@ -36,6 +36,29 @@ jobs:
           path: switch-build-pkgs
           destination: switch-build-pkgs
 
+  validar_eden4_menu:
+    docker:
+      - image: ubuntu:24.04
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Instalar dependencias do menu HOME (host Linux)
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates git build-essential python3 python3-pil
+      - run:
+          name: Baixar Eden4 fixado e compilar menu HOME experimental R07
+          no_output_timeout: 20m
+          command: bash ci/test-eden4-host.sh
+      - store_artifacts:
+          path: switch-r07-reports
+          destination: switch-r07-reports
+      - store_artifacts:
+          path: switch-r07-ui-preview
+          destination: switch-r07-ui-preview
+
 workflows:
   tentar_compilacao_switch:
     jobs:
@@ -43,3 +66,9 @@ workflows:
           filters:
             branches:
               only: himura-switch-ps4
+  estudar_base_eden4_r07:
+    jobs:
+      - validar_eden4_menu:
+          filters:
+            branches:
+              only: himura-switch-base-eden4
