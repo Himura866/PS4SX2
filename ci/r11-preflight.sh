@@ -32,6 +32,7 @@ paths=[
   "eden/src/common/ps4_diagnostics.h",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.cpp",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.h",
+  "eden/src/video_core/vulkan_common/vulkan_wrapper.h",
   "eden/ps4/ui-preview/preview.cpp",
   "eden/ps4/build.sh",
 ]
@@ -62,6 +63,23 @@ grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_laun
 grep -Fq 'void Canvas::CopyOpaque' "$BASE/eden/src/yuzu_ps4/ui_canvas.cpp"
 grep -Fq 'R11GameCheckpoint' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'R11PaintFps' "$BASE/eden/src/video_core/renderer_vulkan/vk_present_manager.cpp"
+echo "R11 preflight: Vulkan FPS memory API must match pinned Eden4 dispatch"
+python3 - "$BASE" <<'PY'
+from pathlib import Path
+import re
+import sys
+root=Path(sys.argv[1])
+renderer=(root/"eden/src/video_core/renderer_vulkan/vk_present_manager.cpp").read_text()
+dispatch=(root/"eden/src/video_core/vulkan_common/vulkan_wrapper.h").read_text()
+assert "api.vkGetBufferMemoryRequirements2(" in renderer, "R11 must query buffer memory with Vulkan 1.1"
+assert "api.vkGetBufferMemoryRequirements(" not in renderer, "obsolete Vulkan call must be absent"
+used=set(re.findall(r"api\\.(vk[A-Za-z0-9_]+)\\s*\\(",renderer))
+available=set(re.findall(r"PFN_(vk[A-Za-z0-9_]+)\\s+\\1",dispatch))
+missing=sorted(used-available)
+if missing:
+    raise RuntimeError("R11 Vulkan dispatcher has no such methods: "+", ".join(missing))
+print("R11 Vulkan dispatch resolved:", ", ".join(sorted(used)))
+PY
 if grep -Fq 'Core::System system;' "$BASE/eden/src/yuzu_ps4/ui_metadata.cpp"; then
    echo "R11 preflight ERROR: unsafe guest initialisation in the metadata worker" >&2
    exit 31
