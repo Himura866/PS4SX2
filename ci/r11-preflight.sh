@@ -10,7 +10,7 @@ trap 'echo "R11 preflight FAILED at $BASH_COMMAND (line $LINENO)" >&2' ERR
 echo "R11 preflight: syntax"
 bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
- ci/patch-r11-samurai-library.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
+ ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
  ci/patch-r11-stability.py; do
   python3 -m py_compile "$py"
@@ -25,6 +25,8 @@ root=Path(sys.argv[1])
 sha="fab246cbac93c7995aaf451dca83ae93ba0bd234"
 paths=[
   "eden/src/yuzu_ps4/ui_launcher.cpp",
+  "eden/src/yuzu_ps4/ui_canvas.h",
+  "eden/src/yuzu_ps4/ui_canvas.cpp",
   "eden/src/yuzu_ps4/ui_metadata.cpp",
   "eden/src/yuzu_ps4/main.cpp",
   "eden/src/common/ps4_diagnostics.h",
@@ -44,7 +46,7 @@ for path in paths:
 PY
 
 echo "R11 preflight: all patches in packaging order"
-for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library \
+for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
  patch-r10-boot-trace patch-r11-stability; do
   echo "APPLY $patch"
@@ -56,6 +58,8 @@ test -s "$BASE/branding/icon0.png"
 test -s "$BASE/branding/pic1.png"
 test -s "$BASE/branding/HIMURA-ATTRIBUTION.txt"
 grep -Fq 'POD DO HIMURA' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'void Canvas::CopyOpaque' "$BASE/eden/src/yuzu_ps4/ui_canvas.cpp"
 grep -Fq 'R11GameCheckpoint' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'R11PaintFps' "$BASE/eden/src/video_core/renderer_vulkan/vk_present_manager.cpp"
 if grep -Fq 'Core::System system;' "$BASE/eden/src/yuzu_ps4/ui_metadata.cpp"; then
@@ -77,7 +81,7 @@ subprocess.run([sys.executable,"-","ci/build-r08-eden4-pkg.sh",
                text=True,check=True)
 PY
 bash -n ci/.r11-build-generated.sh
-for patch in patch-r11-samurai-library patch-r11-autocovers patch-r11-fps \
+for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability; do
  grep -Fq "ci/$patch.py" ci/.r11-build-generated.sh
 done
