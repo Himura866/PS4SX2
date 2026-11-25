@@ -130,7 +130,19 @@ elif patched not in src:
     raise SystemExit('HIMURA: sendfile condition mismatch in libcxx18')
 print('HIMURA: sendfile guard adapted to PS4 libcxx18')
 PYFIX"""
-script.write_text(src[:start] + fixed + src[end:])
+# O CMAKE_SYSTEM_NAME=Generic e -U__FreeBSD__ impedem o LLVM de
+# selecionar pthreads automaticamente. libc++ 18 suporta a opcao oficial.
+patched_script = src[:start] + fixed + src[end:]
+needle = '-DLIBCXX_HAS_MUSL_LIBC=ON '
+if patched_script.count(needle) != 1:
+    raise SystemExit('HIMURA: cannot find libcxx18 CMake threading option insertion')
+patched_script = patched_script.replace(
+    needle,
+    '-DLIBCXX_HAS_MUSL_LIBC=ON -DLIBCXX_HAS_PTHREAD_API=ON ',
+    1,
+)
+script.write_text(patched_script)
+print('HIMURA R05: force PTHREAD thread API in libc++18 build')
 PYLIBCXX
 (cd "$ROOT" && bash ci/30-libcxx.sh)
 STAGE="openssl-ffmpeg"
