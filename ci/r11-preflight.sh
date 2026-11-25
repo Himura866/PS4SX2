@@ -62,6 +62,12 @@ grep -Fq 'POD DO HIMURA' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'void Canvas::CopyOpaque' "$BASE/eden/src/yuzu_ps4/ui_canvas.cpp"
 grep -Fq 'R11GameCheckpoint' "$BASE/eden/src/yuzu_ps4/main.cpp"
+echo "R11 preflight: validate diagnostic path argument is C-compatible"
+grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
+if grep -Fq 'R11GameCheckpoint("launch begin",game.path,true);' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
+   echo "R11 preflight ERROR: std::string passed as const char* without c_str()" >&2
+   exit 32
+fi
 grep -Fq 'R11PaintFps' "$BASE/eden/src/video_core/renderer_vulkan/vk_present_manager.cpp"
 echo "R11 preflight: Vulkan FPS memory API must match pinned Eden4 dispatch"
 python3 - "$BASE" <<'PY'
