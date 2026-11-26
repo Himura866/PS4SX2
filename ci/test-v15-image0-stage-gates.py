@@ -6,7 +6,7 @@ import shutil
 import tempfile
 
 D=Path(__file__).resolve().parent
-modspec=importlib.util.spec_from_file_location('stage',D/'prepare_v15_image0.py')
+modspec=importlib.util.spec_from_file_location('stage',D/'prepare-neweden-v15-image0.py')
 mod=importlib.util.module_from_spec(modspec);modspec.loader.exec_module(mod)
 class Opt: pass
 root=Path('/mnt/data')
