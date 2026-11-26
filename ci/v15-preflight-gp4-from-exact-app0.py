@@ -22,6 +22,26 @@ EXPECTED = {
  'stacktest.nro', 'symbols.zst',
 }
 
+# Baseline bytes for *every* app0 member from the user's verified export.
+# Prevent mixing DLL/PRX, NRO or symbols from different versions.
+BASELINE_HASHES = {
+ 'blocks.nro': '26d16ab4859293142ee2f50857e9b047097d210eb42d16a87a336ba295c79ea1',
+ 'breakout.nro': '97b4706f170950591a1f622d49ed916b2078ff91d3926631bf88829d09843bf8',
+ 'eboot.bin': SOURCE_EBOOT_SHA,
+ 'gputest.nro': 'd692a092b41174b2b9fa327a5180d081e6a0f5087eb01c3f3950f93a206d92a8',
+ 'hello.nro': '6459e564187297422095d77198f90492a29584236fd330439f00db0c423f7ecb',
+ 'nativetest.nro': '3fc94c16b8595ab33ac9acb2c9d0e71d1114e87be06dcd991fda8f782dc0bd80',
+ 'nativetest_gnu.nro': '653c0bd752cbab1860671ee28f578df667c572fa1a5501cbaa9155ca516d3d31',
+ 'padtest.nro': '815364529fc7f0b305114df08db9f396d862424b9d8007c479876997f7db910c',
+ 'sce_module/libSceFios2.prx': 'e703abbabb85468f3e127541825fda500ab3b4f22208a9296b5685ca35df6d3d',
+ 'sce_module/libc.prx': '3f953833539ec5f1e34f56900389203c3448f2c2bc6af242855760af54c7c8a3',
+ 'sce_sys/icon0.png': SOURCE_ICON_SHA,
+ 'sce_sys/keystone': 'd09eb8ab5f3b700164fc8ad85c54c2acbad71244e942aeedf7e3e7eb56408aac',
+ 'sce_sys/param.sfo': SOURCE_SFO_SHA,
+ 'stacktest.nro': '67aad1b2b4164f89c4ecc511e10279cf066ffbbdafa63345432b310fba83bead',
+ 'symbols.zst': '792375292f844ec4afb87a76217e38e672eda4f14541bcdbae29900ee58e22a7',
+}
+
 def sha(path):
  h=hashlib.sha256()
  with path.open('rb') as f:
@@ -56,7 +76,9 @@ def make(stage, dest):
  if any(p.is_symlink() for p in stage.rglob('*')):raise ValueError('STOP: unexpected symbolic link')
  names={p.relative_to(stage).as_posix() for p in allpaths}
  if names!=EXPECTED:raise ValueError('STOP: image0 file list differs: '+repr(sorted(names^EXPECTED)))
- if sha(stage/'eboot.bin')!=SOURCE_EBOOT_SHA:raise ValueError('STOP: wrong experimental eboot')
+ if set(BASELINE_HASHES)!=EXPECTED:raise ValueError('STOP: internal baseline manifest missing entries')
+ for name, expected_sha in BASELINE_HASHES.items():
+  if sha(stage/name)!=expected_sha:raise ValueError('STOP: baseline SHA-256 mismatch: '+name)
  if sha(stage/'sce_sys/param.sfo')!=SOURCE_SFO_SHA:raise ValueError('STOP: wrong original SFO')
  if sha(stage/'sce_sys/icon0.png')!=SOURCE_ICON_SHA:raise ValueError('STOP: wrong original icon')
  f=sfo(stage/'sce_sys/param.sfo')
