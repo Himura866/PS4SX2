@@ -16,6 +16,8 @@ EXPECTED = {
     "APP_VER": "04.89",
 }
 PKG_SHA256 = "06e4bc0538b5217ed5c539c12403bd808131e5d50c96315b2840911170939ccd"
+EBOOT_SHA256 = "5defaadbc08c5ba58b62dbe2a006c892dfab9d941f99900b696feff3fe812381"
+EBOOT_SIZE = 78376440
 
 def sfo_values(path):
     raw = path.read_bytes()
@@ -57,15 +59,21 @@ def inspect(root, original_pkg):
         raise ValueError("Pasta app0 nao encontrada; nada foi extraido")
     sfo = root / "sce_sys" / "param.sfo"
     eboot = root / "eboot.bin"
-    if not sfo.is_file() or not eboot.is_file():
-        raise ValueError("Exportacao incompleta: faltam sce_sys/param.sfo ou eboot.bin")
-    metadata = sfo_values(sfo)
-    errors = [f"{k}: esperado {v!r}, encontrado {metadata.get(k)!r}"
-              for k,v in EXPECTED.items() if metadata.get(k) != v]
-    if errors:
-        raise ValueError("PKG nao corresponde ao New Eden 04.89: " + "; ".join(errors))
-    if eboot.stat().st_size < 65536:
-        raise ValueError("eboot.bin muito pequeno: possivel arquivo invalido")
+    if not eboot.is_file():
+        raise ValueError("Exportacao incompleta: faltou eboot.bin")
+    if eboot.stat().st_size != EBOOT_SIZE:
+        raise ValueError("eboot.bin nao tem o tamanho da revisao 04.89 recebida")
+    actual_eboot_sha256 = sha256(eboot)
+    if actual_eboot_sha256 != EBOOT_SHA256:
+        raise ValueError("O executavel NAO corresponde ao New Eden 04.89 exportado pelo usuario")
+    # A montagem pfsmnt do usuario nao inclui param.sfo nem icon0.png.
+    # O PKG original os contem, e a equivalencia do ELF foi verificada pelo hash.
+    metadata = sfo_values(sfo) if sfo.is_file() else {}
+    if sfo.is_file():
+        errors = [f"{k}: esperado {v!r}, encontrado {metadata.get(k)!r}"
+                  for k,v in EXPECTED.items() if metadata.get(k) != v]
+        if errors:
+            raise ValueError("PKG nao corresponde ao New Eden 04.89: " + "; ".join(errors))
     if original_pkg:
         if sha256(original_pkg) != PKG_SHA256:
             raise ValueError("O PKG de origem difere do arquivo enviado pelo usuario")
@@ -74,8 +82,10 @@ def inspect(root, original_pkg):
         "source": "New Eden 04.89 - decrypted installed app0, not Orbis-EDEN",
         "matched": True,
         "sfo": metadata,
+        "sfo_included_in_app0": sfo.is_file(),
+        "identity_verified_by": "sha256 of exact uploaded eboot.bin",
         "eboot_size": eboot.stat().st_size,
-        "eboot_sha256": sha256(eboot),
+        "eboot_sha256": actual_eboot_sha256,
         "files": len(file_list),
         "paths": [str(p.relative_to(root)) for p in sorted(file_list)],
         "not_verified": ["PS4 game boot", "editing support", "source code provenance"],
