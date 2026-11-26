@@ -75,6 +75,17 @@ echo 'R11 preflight: verify VideoOut takeover and corrected Vulkan flip completi
 grep -Fq 'launcher first VideoOut submit OK' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'launcher interactive HOME rendered' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq '__builtin_ia32_sfence()' "$BASE/eden/src/yuzu_ps4/platform.cpp"
+python3 - "$BASE/eden/src/yuzu_ps4/platform.cpp" <<'PY'
+from pathlib import Path
+import sys
+s=Path(sys.argv[1]).read_text()
+start=s.index('const DisplayMode DisplayModes[] = {')
+arr=s[start:s.index('};',start)]
+assert arr.count('ORBIS_KERNEL_WB_ONION') >= 2, 'CPU coherent modes absent'
+assert arr.index('ORBIS_KERNEL_WB_ONION') < arr.index('ORBIS_KERNEL_WC_GARLIC'), 'Onion not first'
+assert 'R11 HOME selected VideoOut memory_type=' in s
+print('R11 preflight: CPU coherent VideoOut first, Garlic fallback retained')
+PY
 grep -Fq 'status.flipArg >= previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"
 if grep -Fq 'status.flipArg > previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"; then
  echo 'ERROR: stale Vulkan flip condition can cause a timeout' >&2; exit 34
