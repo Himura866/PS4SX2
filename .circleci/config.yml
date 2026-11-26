@@ -110,9 +110,31 @@ jobs:
           path: switch-r11-pkgs
           destination: switch-r11-pkgs
 
+  auditar_r14_orbis_core:
+    docker:
+      - image: ubuntu:24.04
+    resource_class: small
+    steps:
+      - run:
+          name: Preparar ferramentas para auditoria do Orbis Eden
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates git openssh-client
+      - checkout
+      - run:
+          name: Verificar o commit Orbis e 46 patches sem compilar PKG
+          no_output_timeout: 10m
+          command: bash ci/audit-r14-orbis-base.sh
+
 workflows:
   compilar_menu_superior_r11:
     jobs:
+      - auditar_r14_orbis_core:
+          filters:
+            branches:
+              only:
+                - himura-switch-r14-orbis-core-audit
       - validar_r11_antes_do_pkg:
           filters:
             branches:
