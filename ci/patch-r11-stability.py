@@ -94,6 +94,32 @@ def main(root):
         '        }\n'
         '        controller.Read();',
         "first video frame checkpoints")
+    # Before the first composite, the existing frame watchdog never starts its
+    # stall counter. Capture that case too without changing emulation or exit.
+    s=once(s,
+        '    std::thread watchdog([&] {\n'
+        '        u64 last_ticks = 0, last_composites = 0;',
+        '    std::thread watchdog([&] {\n'
+        '        const auto first_frame_deadline = std::chrono::steady_clock::now() +\n'
+        '                                          std::chrono::seconds{20};\n'
+        '        u64 last_ticks = 0, last_composites = 0;',
+        "initial frame watchdog deadline")
+    s=once(s,
+        '            if (!dumped && (frontend_stale >= 15 || frames_stale >= 20)) {\n'
+        '                dumped = true;\n'
+        '                ps4_dump_thread_stacks("/data/EdenPS4/hang.log",\n'
+        '                                       frontend_stale >= 15 ? "frontend loop stopped for 15 s" : "no new frame for 20 s");',
+        '            if (watchdog_stop.load()) break;\n'
+        '            const bool first_frame_missing = composites == 0 &&\n'
+        '                std::chrono::steady_clock::now() >= first_frame_deadline;\n'
+        '            if (!dumped && (frontend_stale >= 15 || frames_stale >= 20 ||\n'
+        '                            first_frame_missing)) {\n'
+        '                dumped = true;\n'
+        '                const char* reason = frontend_stale >= 15 ? "frontend loop stopped for 15 s"\n'
+        '                    : first_frame_missing ? "no first game frame reached the renderer in 20 s"\n'
+        '                                          : "no new frame for 20 s";\n'
+        '                ps4_dump_thread_stacks("/data/EdenPS4/hang.log", reason);',
+        "capture diagnostic when the first game frame never arrives")
     s=once(s,
         '    LOG_INFO(Frontend, "Stopping emulation");',
         '    R11GameCheckpoint("stopping emulation");\n'
