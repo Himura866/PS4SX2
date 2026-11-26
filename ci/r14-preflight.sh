@@ -28,6 +28,11 @@ git -C "$WORK/orbis" checkout -q --detach FETCH_HEAD
 test "$(git -C "$WORK/orbis" rev-parse HEAD)" = "$SOURCE_COMMIT"
 printf 'R14 upstream locked to %s\n' "$SOURCE_COMMIT"
 test "$(find "$WORK/orbis/patches/eden" -maxdepth 1 -name '*.patch' | wc -l | tr -d ' ')" = 46
+# Regression guard for CircleCI exit 141 (SIGPIPE) after Eden patch application.
+grep -Fq 'git -C deps/eden log --oneline | head -5' "$WORK/orbis/ci/60-eden.sh"
+grep -Fq 'git -C deps/eden log -5 --oneline' ci/himura-switch-build.sh
+grep -Fq 'bash -n "$ROOT/ci/60-eden.sh"' ci/himura-switch-build.sh
+echo 'R14 SIGPIPE/141 patch integration verified'
 python3 ci/r14-adapt-orbis.py "$WORK/orbis"
 python3 ci/r14-prepare-art.py "$WORK/orbis"
 python3 ci/r14-enable-update-manager.py "$WORK/orbis"
