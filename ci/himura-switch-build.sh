@@ -48,7 +48,7 @@ on_exit() {
   fi
   if [ -d "$ROOT/logs" ]; then cp -a "$ROOT/logs" "$REPORT/upstream-logs"; fi
   (cd "$PKG_ARTIFACTS" && sha256sum ./* > "$REPORT/artifact-sha256.txt" 2>/dev/null) || true
-  echo "HIMURA SWITCH build result: stage=$STAGE exit=$result"
+  echo "HIMURA SWITCH R14 build result: stage=$STAGE exit=$result"
 }
 trap on_exit EXIT
 
@@ -80,6 +80,13 @@ grep -Fq 'COMMIT=5f142c7926d0c7fcbbd0ce30794d72f638a43b2a' "$ROOT/scripts/fetch-
   echo "ERRO: Eden base mudou, auditar antes de compilar"; exit 18;
 }
 echo "Fonte Orbis auditada: $actual; Eden base 5f142c79; 46 patches PS4"
+
+# Adapt ONLY this pinned upstream checkout; never mutate the source branch or R13.
+STAGE="adaptar-r14-frontend"
+python3 ci/r14-adapt-orbis.py "$ROOT"
+python3 ci/r14-prepare-art.py "$ROOT"
+bash -n "$ROOT/ci/70-package.sh"
+echo "R14: artwork and standalone HIMURA packaging prepared"
 
 STAGE="baixar-sdk"
 curl --fail --location --retry 3 \
