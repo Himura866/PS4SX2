@@ -34,6 +34,7 @@ paths=[
   "eden/src/yuzu_ps4/ui_metadata.cpp",
   "eden/src/yuzu_ps4/main.cpp",
   "eden/src/common/ps4_diagnostics.h",
+  "eden/src/common/stb.h",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.cpp",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.h",
   "eden/src/video_core/vulkan_common/vulkan_wrapper.h",
@@ -67,6 +68,8 @@ test -s "$BASE/branding/pic1.png"
 test -s "$BASE/branding/himura-r11-menu.png"
 grep -Fq '$STAGE/skin/himura-r11-menu.png' "$BASE/eden/ps4/build.sh"
 grep -Fq '/app0/skin/himura-r11-menu.png' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fxq '#define STBI_ONLY_PNG 1' "$BASE/eden/src/common/stb.h"
+grep -Fxq '#define STBI_ONLY_JPEG 1' "$BASE/eden/src/common/stb.h"
 test -s "$BASE/branding/HIMURA-ATTRIBUTION.txt"
 grep -Fq 'POD DO HIMURA' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"

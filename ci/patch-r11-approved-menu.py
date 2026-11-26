@@ -56,8 +56,13 @@ R11_SKIN_SOURCE=r'''
 def patch(root: Path):
     launcher=root/"eden/src/yuzu_ps4/ui_launcher.cpp"
     build=root/"eden/ps4/build.sh"
+    stb_header=root/"eden/src/common/stb.h"
     s=launcher.read_text(encoding="utf8")
     b=build.read_text(encoding="utf8")
+    stb=once(stb_header.read_text(encoding="utf8"),
+        '#define STBI_ONLY_JPEG 1',
+        '#define STBI_ONLY_JPEG 1\n#define STBI_ONLY_PNG 1',
+        "decode the packaged PNG skin and PNG game covers")
     s=once(s,'#include <algorithm>\n','#include <algorithm>\n#include <cstdio>\n',"stdio")
     s=once(s,
         'void DrawR11Backdrop(Canvas& c) {\n',
@@ -105,6 +110,7 @@ def patch(root: Path):
         "PS4 PKG skin stage")
     launcher.write_text(s,encoding="utf8")
     build.write_text(b,encoding="utf8")
+    stb_header.write_text(stb,encoding="utf8")
     print("R11: exact approved menu art layered under live controls and staged to PS4 PKG")
 
 if __name__=="__main__":
