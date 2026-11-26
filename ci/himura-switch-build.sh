@@ -159,6 +159,8 @@ run_stage() {
 }
 
 STAGE="libcxx18"
+# Copy target-specific patch into the pinned Orbis working tree before building libc++.
+cp ci/r14-fix-libcxx-random.py "$ROOT/ci/r14-fix-libcxx-random.py"
 # upstream Orbis Eden ci/30-libcxx.sh procura __linux__ nos 120 primeiros
 # caracteres/linhas, mas LLVM 18.1.8 usa __has_include(<sys/sendfile.h>).
 # No PS4 (__ORBIS__), sendfile segue a API FreeBSD, nao a API Linux:
@@ -186,6 +188,14 @@ PYFIX"""
 # O CMAKE_SYSTEM_NAME=Generic e -U__FreeBSD__ impedem o LLVM de
 # selecionar pthreads automaticamente. libc++ 18 suporta a opcao oficial.
 patched_script = src[:start] + fixed + src[end:]
+# On Ubuntu, the host has linux/random.h, but the PS4 sysroot lacks the
+# Linux asm/types.h transitively included by it. Apply only to __ORBIS__
+# after sparse checkout and BEFORE compiling the random.cpp object.
+configure_marker = 'step "configure + build"'
+if patched_script.count(configure_marker) != 1:
+    raise SystemExit('HIMURA R14: libcxx configure step moved unexpectedly')
+random_fix = 'python3 "$ROOT/ci/r14-fix-libcxx-random.py" "$ROOT/deps/llvm-project/libcxx/src/random.cpp"'
+patched_script = patched_script.replace(configure_marker, random_fix + '\n' + configure_marker, 1)
 needle = '-DLIBCXX_HAS_MUSL_LIBC=ON '
 if patched_script.count(needle) != 1:
     raise SystemExit('HIMURA: cannot find libcxx18 CMake threading option insertion')

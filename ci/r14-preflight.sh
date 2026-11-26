@@ -6,6 +6,20 @@ python3 -m py_compile ci/r14-adapt-orbis.py ci/r14-prepare-art.py ci/r14-enable-
 ROOT="$(pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+python3 -m py_compile ci/r14-fix-libcxx-random.py
+# Verify the exact failing LLVM 18.1.8 translation unit before triggering
+# another expensive SDK build. This downloads only random.cpp, not LLVM itself.
+mkdir -p "$WORK/libcxx/src"
+curl --fail --silent --show-error --location --retry 2 \
+  -o "$WORK/libcxx/src/random.cpp" \
+  https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/libcxx/src/random.cpp
+python3 ci/r14-fix-libcxx-random.py "$WORK/libcxx/src/random.cpp"
+python3 ci/r14-fix-libcxx-random.py "$WORK/libcxx/src/random.cpp"
+grep -Fq '#  if !defined(__ORBIS__) && __has_include(<sys/ioctl.h>) && __has_include(<linux/random.h>)' \
+  "$WORK/libcxx/src/random.cpp"
+grep -Fq 'random_fix = ' ci/himura-switch-build.sh
+echo 'R14 LLVM random.cpp PS4 guard verified and repeatable'
+
 SOURCE_COMMIT="f004df1c7a812cc65703d8f937d0bd12a6d06a58"
 git init -q "$WORK/orbis"
 git -C "$WORK/orbis" remote add origin https://github.com/MrKitsune9/Orbis-EDEN.git
