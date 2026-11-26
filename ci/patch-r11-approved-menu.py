@@ -31,6 +31,15 @@ R11_SKIN_SOURCE=r'''
                 if (!picture.Empty()) {
                     std::fclose(fp);
                     c.DrawImage(picture, 0, 0);
+                    // The approved picture contains MOCK game covers, arrows, dots
+                    // and six printed buttons. Hide those inert example controls;
+                    // the actual PS4 library draws real games, cursor and buttons
+                    // on top of these opaque panels on EVERY interactive frame.
+                    c.FillRoundRect(94, 434, 1732, 406, 18, {0x090e1b}, 0.98f);
+                    c.StrokeRoundRect(94, 434, 1732, 406, 18, 2, {0x9a1e35}, 0.55f);
+                    c.FillRect(0, 485, 105, 190, {0x090e1b}, 0.96f);
+                    c.FillRect(1815, 485, 105, 190, {0x090e1b}, 0.96f);
+                    c.FillRoundRect(964, 28, 930, 150, 15, {0x090d19}, 0.98f);
                     // Footer hints are actual LIVE controls, not baked screenshot.
                     c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 0.95f);
                     c.HLine(0, Canvas::Width, 969, 3, {0xd52236}, 0.85f);
