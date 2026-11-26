@@ -2,6 +2,7 @@
 """Experimental 04.89 GP4 -> PS4 PKG builder. NEVER a V15 UI completion claim."""
 import argparse, hashlib, importlib.util, json, shutil, subprocess, tempfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 CONTENT_ID='IV0000-EDNP00001_00-EDENPS4000000000'
 def sha(p):
@@ -9,6 +10,37 @@ def sha(p):
     with p.open('rb') as f:
         for chunk in iter(lambda:f.read(1024*1024),b''): h.update(chunk)
     return h.hexdigest()
+def validate_gp4_sources(gp4, stage, expected_paths):
+    """Confirm LibOrbisPkg will find every file relative to the GP4's folder.
+
+    PfsProperties.BuildFSTree combines GP4's directory with each orig_path;
+    passing a different cwd to PkgTool does NOT fix a misplaced GP4.
+    """
+    document=ElementTree.parse(gp4)
+    root=document.getroot()
+    if root.findtext("./volume/package") is not None:
+        raise ValueError("Unexpected GP4 package format")
+    package=root.find("./volume/package")
+    if package is None or package.get("content_id")!=CONTENT_ID:
+        raise ValueError("GP4 content ID does not match app0")
+    entries=root.findall("./files/file")
+    if len(entries)!=len(expected_paths):
+        raise ValueError("GP4 file count mismatch")
+    if {e.get("targ_path") for e in entries}!=set(expected_paths):
+        raise ValueError("GP4 files do not match the verified Image0")
+    if gp4.resolve().parent != stage.resolve():
+        raise ValueError("GP4 must reside in the stage folder")
+    for entry in entries:
+        relative=entry.get("orig_path")
+        target=entry.get("targ_path")
+        if not relative or Path(relative).is_absolute() or ".." in Path(relative).parts:
+            raise ValueError("Unsafe GP4 source path")
+        file=(gp4.parent/relative).resolve(strict=True)
+        expected=(stage/target).resolve(strict=True)
+        if file!=expected or not file.is_file():
+            raise ValueError("GP4 orig_path does not resolve to verified image file: "+target)
+    return len(entries)
+
 def run(args):
     if not args.allow_experimental: raise ValueError('V15 runtime UI not integrated; explicit --allow-experimental needed')
     image=args.image0.absolute()
@@ -33,10 +65,14 @@ def run(args):
             icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
             icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
         r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
-        gp4=tmp/'experimental.gp4'
-        files=' '.join(record['path'] for record in report['files'])
+        # LibOrbisPkg resolves orig_path RELATIVE TO the GP4 location, not cwd.
+        # Keep GP4 beside the staged app0 files; exclude it from the explicit file list.
+        gp4=stage/'experimental.gp4'
+        verified_paths=[record['path'] for record in report['files']]
+        files=' '.join(verified_paths)
         subprocess.run([str(Path(args.create_gp4).resolve()),'-out',str(gp4),'--content-id='+CONTENT_ID,'--files',files],cwd=stage,timeout=180,check=True)
         if not gp4.is_file() or gp4.stat().st_size<100: raise ValueError('GP4 output missing/invalid')
+        validate_gp4_sources(gp4,stage,verified_paths)
         generated=tmp/'packages';generated.mkdir()
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_build',str(gp4),str(generated)],cwd=stage,timeout=1800,check=True)
         candidates=list(generated.glob('*.pkg'))
