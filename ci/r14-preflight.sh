@@ -18,6 +18,9 @@ python3 ci/r14-adapt-orbis.py "$WORK/orbis"
 python3 ci/r14-prepare-art.py "$WORK/orbis"
 python3 ci/r14-enable-update-manager.py "$WORK/orbis"
 bash -n "$WORK/orbis/ci/70-package.sh"
+# Compile C++ frontend as a host syntax smoke test, before an expensive PS4 cross-build.
+c++ -std=c++20 -fsyntax-only -I"$WORK/orbis/frontend" "$WORK/orbis/frontend/menu/r14_update_manager.cpp"
+c++ -std=c++20 -fsyntax-only -I"$WORK/orbis/frontend" "$WORK/orbis/frontend/menu/rom_menu.cpp"
 python3 - "$WORK/orbis" <<'PY'
 from pathlib import Path
 from PIL import Image
