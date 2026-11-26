@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
+ ci/patch-r11-stability.py ci/patch-r13-mii-defaults.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
  ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py ci/patch-r12-active-user-videoout.py; do
   python3 -m py_compile "$py"
 done
@@ -33,6 +33,7 @@ paths=[
   "eden/src/yuzu_ps4/ui_canvas.cpp",
   "eden/src/yuzu_ps4/ui_metadata.cpp",
   "eden/src/yuzu_ps4/main.cpp",
+  "eden/src/core/hle/service/mii/mii_manager.cpp",
   "eden/src/common/ps4_diagnostics.h",
   "eden/src/common/stb.h",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.cpp",
@@ -56,11 +57,20 @@ PY
 echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
- patch-r10-boot-trace patch-r11-stability patch-r11-approved-menu patch-r11-home-return \
+ patch-r10-boot-trace patch-r11-stability patch-r13-mii-defaults patch-r11-approved-menu patch-r11-home-return \
  patch-r11-videoout-visibility patch-r12-active-user-videoout; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
+
+echo "R13 preflight: Mii fallback backport"
+python3 - "$BASE" <<'PY'
+from pathlib import Path
+import sys
+s=(Path(sys.argv[1]) / "eden/src/core/hle/service/mii/mii_manager.cpp").read_text()
+assert s.count("source_flag = source_flag | SourceFlag::Default;") == 4
+assert s.count("#ifdef __ORBIS__") >= 4
+PY
 
 echo "R11 preflight: complete theme/assets and safe metadata"
 test -s "$BASE/branding/icon0.png"
