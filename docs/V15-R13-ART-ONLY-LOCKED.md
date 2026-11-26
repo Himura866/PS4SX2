@@ -35,3 +35,15 @@ A edição solicitada na arte interna é **MÍNIMA**:
 A imagem de referência aprovada ainda contém controles/capas e títulos incorporados aos pixels; por isso a implementação do menu deve evitar duplicar elementos reais sobre elementos fictícios. A fidelidade visual **não implica usar a própria captura como interface clicável**. A separação correta dos elementos deve ser testada visualmente antes de empacotar, sem reprojetar a cena.
 
 **Estado desta exigência:** documentação aprovada; arte limpa e integração funcional ao executável 04.89 ainda não validadas no PS4. Não divulgar PKG incompleto como funcional.
+
+
+## Critério adicional de qualidade de imagem — confirmado em 26/11/2026
+
+O usuário exige que o **fundo interno da V15 tenha altíssima qualidade** na TV. Não substituir a arte R13 original por outra composição.
+
+- Preservar cena samurai, lua vermelha, montanha, elementos, enquadramento, cores e proporções originais; remover apenas os elementos de interface falsos e o painel preto já identificados no contrato.
+- Antes de converter, medir e registrar no manifesto a **resolução nativa** do arquivo aprovado e sua soma SHA-256. NÃO declarar que um arquivo é 4K nativo apenas porque foi ampliado para 3840×2160.
+- Produzir uma saída limpa em 16:9, no mínimo adequada a 1920×1080, usando a fonte de maior qualidade verificável disponível. Só preparar variante 3840×2160 se houver benefício visual demonstrável e suporte/performance suficiente no PS4 Pro; a resolução de textura não determina a resolução do sinal de vídeo.
+- Evitar JPEG recomprimido, artefatos, esticamento, recortes de samurai/lua, borrão, barras artificiais, filtros destrutivos e painéis opacos sob a biblioteca. Preferir PNG sem perdas ou WebP de alta fidelidade compatível com o carregador real do New Eden 04.89.
+- Verificar dimensões, aspecto, canal de cor, decodificação no renderer, consumo de VRAM, tempo de entrada no menu e nitidez numa captura real da TV. O menu deve continuar fluido com 4–10 jogos visíveis e operações do controle sem lag.
+- Comparação visual lado a lado com a R13 aprovada (mesmo enquadramento) antes da versão instalável. Esta exigência é um **critério de aceitação**, não prova de asset criado nem funcionalidade já implementada.
