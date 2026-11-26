@@ -66,6 +66,18 @@ echo "R11 preflight: complete theme/assets and safe metadata"
 test -s "$BASE/branding/icon0.png"
 test -s "$BASE/branding/pic1.png"
 test -s "$BASE/branding/himura-r11-menu.png"
+# The approved menu artwork must not ship the six printed fake pad hints.
+python3 - "$BASE/branding/himura-r11-menu.png" <<'PY'
+from PIL import Image
+import sys
+with Image.open(sys.argv[1]) as wallpaper:
+    image = wallpaper.convert('RGB')
+    for point in ((30, 1000), (200, 1025), (600, 1035), (1550, 1025), (1850, 1050)):
+        assert image.getpixel(point) == (7, 9, 17), f'Fake controls remain visible at {point}'
+print('R13: clean wallpaper footer pixels verified')
+PY
+# Footer masks must be fully opaque so the PNG and live UI never overlap.
+grep -Fq 'c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq '$STAGE/skin/himura-r11-menu.png' "$BASE/eden/ps4/build.sh"
 grep -Fq '/app0/skin/himura-r11-menu.png' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fxq '#define STBI_ONLY_PNG 1' "$BASE/eden/src/common/stb.h"
