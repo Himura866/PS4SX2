@@ -211,6 +211,12 @@ run_stage "libcxx18" "ci/30-libcxx.sh"
 STAGE="openssl-ffmpeg"
 run_stage "openssl-ffmpeg" "ci/40-openssl-ffmpeg.sh"
 STAGE="compilar-eden"
+# CI-only identity inherited by nested git am / git commit processes.
+export GIT_COMMITTER_NAME="HIMURA CI"
+export GIT_COMMITTER_EMAIL="himura-ci@users.noreply.github.com"
+export GIT_AUTHOR_NAME="$GIT_COMMITTER_NAME"
+export GIT_AUTHOR_EMAIL="$GIT_COMMITTER_EMAIL"
+git -C "$ROOT" var GIT_COMMITTER_IDENT
 run_stage "compilar-eden" "ci/60-eden.sh"
 test -s "$ROOT/build-eden/bin/eden-ps4" || { echo "ELF ausente"; exit 14; }
 cp -f "$ROOT/build-eden/bin/eden-ps4" "$PKG_ARTIFACTS/eden-ps4.elf"
