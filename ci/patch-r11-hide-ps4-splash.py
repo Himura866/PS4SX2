@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Fix PS4 shell's boot splash persisting above an otherwise working launcher.
+"""R11: dismiss PS4 system-owned splash AFTER the first real VideoOut flip.
 
-Source evidence: PS4 HOME audio/game input works, R10 boot log shows VideoOut
-flips and rendered HOME, but pic1.png remains visibly stuck after launch.
-The OpenOrbis piglet sample explicitly hides the shell splash using
-sceSystemServiceHideSplashScreen() after loading the SystemService module.
-Eden4 already loads that module and links SceSystemService, but never calls it.
+The original shell wallpaper (sce_sys/pic1.png) is not the application's
+interactive canvas. The PS4 shell may keep it above the running application
+until sceSystemServiceHideSplashScreen() is called. Preserve both icon0 and
+pic1; fix hand-off from system splash to live Samurai HOME instead.
 
-This patch hides the PS4 shell splash ONLY AFTER the first successful launcher
-Present(); preserves sce_sys/pic1.png and actual Samurai HOME artwork.
+OpenOrbis's Piglet sample calls this same function. The Eden4 target already
+links SceSystemService and loads the internal SystemService module.
 """
 from pathlib import Path
 import sys
@@ -16,58 +15,59 @@ import sys
 def replace_once(src, before, after, label):
     n = src.count(before)
     if n != 1:
-        raise RuntimeError(f"R11 PS4 splash fix {label}: expected one anchor; found {n}")
+        raise RuntimeError(f"R11 shell splash {label}: expected 1 anchor, found {n}")
     return src.replace(before, after, 1)
 
 def main(root: Path):
-    platform = root / "eden/src/yuzu_ps4/platform.cpp"
+    source = root / "eden/src/yuzu_ps4/platform.cpp"
     cmake = root / "eden/src/yuzu_ps4/CMakeLists.txt"
-    src = platform.read_text(encoding="utf-8")
-    link = cmake.read_text(encoding="utf-8")
-    if "SceSystemService" not in link or "ORBIS_SYSMODULE_INTERNAL_SYSTEM_SERVICE" not in src:
-        raise RuntimeError("R11 splash fix: cannot prove SystemService load and link")
-    if "sceSystemServiceHideSplashScreen" in src:
-        raise RuntimeError("R11 splash fix: HideSplashScreen already exists (avoid double patch)")
+    s = source.read_text(encoding="utf-8")
+    target = cmake.read_text(encoding="utf-8")
+    if "SceSystemService" not in target:
+        raise RuntimeError("R11 shell splash: executable does not link SceSystemService")
+    if "ORBIS_SYSMODULE_INTERNAL_SYSTEM_SERVICE" not in s:
+        raise RuntimeError("R11 shell splash: SystemService module not loaded")
+    if "sceSystemServiceHideSplashScreen" in s:
+        raise RuntimeError("R11 shell splash: already patched")
 
-    src = replace_once(src,
-        '#include <stdexcept>\n',
-        '#include <stdexcept>\n#include <cstdio>\n',
-        "headers")
-    src = replace_once(src,
-        'namespace OrbisFrontend {\n',
-        '// OpenOrbis libSceSystemService; linked by eden/src/yuzu_ps4/CMakeLists.txt.\n'
-        '// The PS4 shell splash is distinct from the app\\'s samurai menu background.\n'
-        'extern "C" int sceSystemServiceHideSplashScreen(void);\n\n'
-        'namespace OrbisFrontend {\n',
-        "export")
-    src = replace_once(src,
-        '    if (!Flip())\n'
-        '        throw std::runtime_error{"PS4 launcher display flip failed"};\n'
-        '}\n',
-        '    if (!Flip())\n'
-        '        throw std::runtime_error{"PS4 launcher display flip failed"};\n'
-        '    // The PS4 launcher keeps sce_sys/pic1.png as a system-owned splash\n'
-        '    // until explicitly dismissed. A successful VideoOut flip is NOT\n'
-        '    // sufficient (the menu can be alive behind the splash with sound).\n'
-        '    // Do this only after a REAL frame was flipped. Do not alter pic1.png.\n'
-        '    static bool splash_hidden = false;\n'
-        '    static unsigned attempts = 0;\n'
-        '    if (!splash_hidden && attempts < 4) {\n'
-        '        ++attempts;\n'
-        '        const int result = sceSystemServiceHideSplashScreen();\n'
-        '        splash_hidden = result >= 0;\n'
-        '        LOG_INFO(Frontend, "R11 PS4 shell splash dismissal attempt {}: {:#x}",\n'
-        '                 attempts, static_cast<uint32_t>(result));\n'
+    s = replace_once(s, "#include <stdexcept>\n",
+                        "#include <stdexcept>\n"
+                        "#include <cstdio>\n"
+                        "#include <orbis/SystemService.h>\n",
+                        "header from OpenOrbis SDK")
+
+    # The preceding R11 VideoOut patch has already inserted the first-frame
+    # log, so insert immediately after the actual completed Present() flip.
+    anchor = ('    if (flips <= 3)\n'
+              '        LOG_INFO(Frontend, "R11 HOME VideoOut frame {} visible, mode {}", flips - 1, mode.name);\n')
+    addition = (
+        '    // A successful flipArg alone does not dismiss the PS4 system splash.\n'
+        '    // Hide it only after a real HOME framebuffer has been presented.\n'
+        '    static bool shell_splash_hidden = false;\n'
+        '    static unsigned shell_hide_attempts = 0;\n'
+        '    if (!shell_splash_hidden && shell_hide_attempts < 4 &&\n'
+        '        (flips == 2 || (flips > 2 && (flips - 2) % 60 == 0))) {\n'
+        '        const int status = sceSystemServiceHideSplashScreen();\n'
+        '        ++shell_hide_attempts;\n'
+        '        shell_splash_hidden = status >= 0;\n'
+        '        LOG_INFO(Frontend, "R11 PS4 splash handoff attempt {} returned {:#x}",\n'
+        '                 shell_hide_attempts, static_cast<uint32_t>(status));\n'
         '        if (std::FILE* log = std::fopen("/data/EdenPS4/HIMURA_R11_SPLASH_STATUS.txt", "a")) {\n'
-        '            std::fprintf(log, "HideSplashScreen attempt %u result 0x%08x hidden=%d\\n",\n'
-        '                         attempts, static_cast<unsigned>(result), int(splash_hidden));\n'
+        '            std::fprintf(log, "HideSplashScreen attempt %u result 0x%08x success=%d\\n",\n'
+        '                         shell_hide_attempts, static_cast<unsigned>(status),\n'
+        '                         static_cast<int>(shell_splash_hidden));\n'
         '            std::fclose(log);\n'
         '        }\n'
         '    }\n'
-        '}\n',
-        "dismiss after successful VideoOut present")
-    platform.write_text(src, encoding="utf-8")
-    print("R11 shell splash dismissal installed after first completed launcher present, without changing pic1.png")
+    )
+    s = replace_once(s, anchor, anchor + addition, "post-VideoOut splash handoff")
+    s = replace_once(s,
+        '"R11 HOME VideoOut frame {} visible, mode {}"',
+        '"R11 HOME VideoOut frame {} flip completed, mode {}"',
+        "honest VideoOut log wording")
+    source.write_text(s, encoding="utf-8")
+    print("R11: PS4 system splash is dismissed only after successful HOME VideoOut flip")
+    print("R11: diagnostic: /data/EdenPS4/HIMURA_R11_SPLASH_STATUS.txt")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
