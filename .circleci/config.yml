@@ -18,7 +18,7 @@ jobs:
           name: Validar alteracoes visuais R13 antes da compilacao
           command: |
             python3 -m py_compile ci/patch-r11-samurai-library.py
-            python3 - <<'PY'
+            python3 - \<<'PY'
             from pathlib import Path
             s = Path("ci/patch-r11-samurai-library.py").read_text()
             assert 'c.Text("SWITCH PS4  |  R13"' in s, "Versao visual incorreta"
