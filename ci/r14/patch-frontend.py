@@ -48,6 +48,12 @@ DRAW = r'''void Draw(Canvas& c, const std::vector<MenuEntry>& entries, int selec
     constexpr int Cols = 5;
     constexpr int Page = 10;
     R14Background(c);
+    // Hide all five printed demo covers, even when the user has fewer games.
+    c.Fill(135, 435, 355, 369, Back);
+    c.Fill(490, 447, 319, 336, Back);
+    c.Fill(814, 447, 325, 336, Back);
+    c.Fill(1144, 447, 326, 336, Back);
+    c.Fill(1476, 448, 324, 336, Back);
     // Cover only inert screenshot arrows, dots and the old R13 badge.
     // Navigation and version are drawn by the running program instead.
     c.Fill(62, 570, 65, 118, Back);
