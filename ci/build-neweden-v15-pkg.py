@@ -23,6 +23,17 @@ def run(args):
         report=mod.make(image,tmp/'gp4-audit')
         assert report['file_count']==15
         stage=tmp/'Image0';shutil.copytree(image,stage)
+        # Preserve the exact R13 external PS4 cover; NOT an internal UI asset.
+        r13_icon_hash=None
+        if args.r13_icon:
+            from PIL import Image, ImageOps
+            icon_src=Path(args.r13_icon).resolve(strict=True)
+            approved_sha='ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
+            if sha(icon_src)!=approved_sha: raise ValueError('R13 external icon source hash mismatch')
+            with Image.open(icon_src) as src:
+                image=ImageOps.fit(src.convert('RGB'),(512,512),Image.Resampling.LANCZOS)
+                image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
+            r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
         gp4=tmp/'experimental.gp4'
         files=' '.join(record['path'] for record in report['files'])
         subprocess.run([str(Path(args.create_gp4).resolve()),'-out',str(gp4),'--content-id='+CONTENT_ID,'--files',files],cwd=stage,timeout=180,check=True)
@@ -40,6 +51,7 @@ def run(args):
         shutil.copyfile(candidates[0],dest)
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
                   'content_id':CONTENT_ID,'size':dest.stat().st_size,
+                  'r13_external_icon_sha256':r13_icon_hash,
                   'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test']}
         (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
         return manifest
@@ -48,6 +60,7 @@ def main():
     p.add_argument('--image0',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
     p.add_argument('--create-gp4',required=True);p.add_argument('--pkgtool',required=True)
     p.add_argument('--allow-experimental',action='store_true')
+    p.add_argument('--r13-icon',help='Verified original R13 icon WebP; used only for PS4 app tile')
     a=p.parse_args()
     try: print(json.dumps(run(a),indent=2))
     except (ValueError,FileNotFoundError,subprocess.CalledProcessError,subprocess.TimeoutExpired) as e:
