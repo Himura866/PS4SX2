@@ -73,6 +73,8 @@ grep -Fq 'bool menu_armed = false' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'constexpr uint32_t return_buttons' "$BASE/eden/src/yuzu_ps4/main.cpp"
 echo 'R11 preflight: verify VideoOut takeover and corrected Vulkan flip completion'
 grep -Fq 'launcher first VideoOut submit OK' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'sceSystemServiceHideSplashScreen();' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'launcher splash hide FAILED' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'launcher interactive HOME rendered' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq '__builtin_ia32_sfence()' "$BASE/eden/src/yuzu_ps4/platform.cpp"
 grep -Fq 'status.flipArg >= previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"
@@ -125,6 +127,8 @@ PY
 python3 ci/patch-r11-build-cache.py ci/.r11-build-generated.sh
 bash -n ci/.r11-build-generated.sh
 grep -Fq 'R11_CACHE_V1' ci/.r11-build-generated.sh
+grep -Fq 'R11_DEPS_ONLY' ci/.r11-build-generated.sh
+grep -Fq 'R11_PKG_ONLY' ci/.r11-build-generated.sh
 grep -Fq 'stage 09_eden_pkg build_pkg' ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu \
