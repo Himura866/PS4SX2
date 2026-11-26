@@ -8,6 +8,8 @@ python3 -m py_compile ci/r14/patch-frontend.py ci/r14/build-branding.py \
   ci/generate-r11-branding.py
 TARGET="$ROOT/.himura-r14/orbis-eden"
 bash ci/r14/prepare-orbis-r14.sh "$TARGET"
+# The ROM picker uses plain C++ and OS call declarations; check C++ syntax without PS4 SDK.
+g++ -std=c++20 -fsyntax-only -I "$TARGET/frontend" "$TARGET/frontend/menu/rom_menu.cpp"
 
 python3 - "$TARGET" <<'PY'
 from pathlib import Path
