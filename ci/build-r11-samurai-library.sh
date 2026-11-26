@@ -31,7 +31,8 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r11-authorship.py "$EDEN"\n'
      '  python3 ci/patch-r10-boot-trace.py "$EDEN"\n'
      '  python3 ci/patch-r11-stability.py "$EDEN"\n'
-     '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n')
+     '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
+     '  python3 ci/patch-r11-home-return.py "$EDEN"\n')
 Path(sys.argv[2]).write_text(source, encoding="utf-8")
 PY
 grep -Fq 'EDEN4_TITLE_ID="HIMU00011"' "$dst"
