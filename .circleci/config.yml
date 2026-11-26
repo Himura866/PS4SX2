@@ -166,12 +166,7 @@ jobs:
             /tmp/himura-cmake-r14/bin/pip install --disable-pip-version-check 'cmake==3.31.10'
             export PATH="/tmp/himura-cmake-r14/bin:$PATH"
             cmake --version
-            python3 - <<'PYCMAKE'
-            import re, subprocess
-            v = subprocess.check_output(['cmake', '--version'], text=True)
-            m = re.search(r'cmake version (\d+)\.(\d+)', v)
-            assert m and tuple(map(int, m.groups())) >= (3, 31), v
-            PYCMAKE
+            python3 -c 'import re, subprocess; v=subprocess.check_output(["cmake", "--version"], text=True); m=re.search(r"cmake version (\d+)\.(\d+)", v); assert m and tuple(map(int, m.groups())) >= (3, 31), v'
             export JOBS=2
             bash ci/himura-switch-build.sh
       - store_artifacts:
