@@ -32,9 +32,12 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r10-boot-trace.py "$EDEN"\n'
      '  python3 ci/patch-r11-stability.py "$EDEN"\n'
      '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
-     '  python3 ci/patch-r11-home-return.py "$EDEN"\n')
+     '  python3 ci/patch-r11-home-return.py "$EDEN"\n'
+     '  python3 ci/patch-r11-videoout-visibility.py "$EDEN"\n')
 Path(sys.argv[2]).write_text(source, encoding="utf-8")
 PY
+# Reuse pinned PS4 dependencies on later builds; still compile this R11's ELF and PKG.
+python3 ci/patch-r11-build-cache.py "$dst"
 grep -Fq 'EDEN4_TITLE_ID="HIMU00011"' "$dst"
 grep -Fq 'EDEN4_VERSION="01.11"' "$dst"
 grep -Fq 'local pkg="$PS4_BUILD_ROOT/out/HIMURA SWITCH PS4-01.11-R11.pkg"' "$dst"
