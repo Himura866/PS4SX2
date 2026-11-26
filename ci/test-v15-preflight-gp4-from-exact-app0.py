@@ -4,11 +4,15 @@ import importlib.util
 from pathlib import Path
 import shutil
 import tempfile
+import argparse
 
 src=Path(__file__).with_name('v15_preflight_gp4.py')
 sp=importlib.util.spec_from_file_location('gp4',src)
 mod=importlib.util.module_from_spec(sp);sp.loader.exec_module(mod)
-original=Path('/mnt/data/HIMURA_NEWEDEN_V15_ETAPA04/IMAGE0_V15_EXPERIMENTAL_NAO_INSTALAR/image0')
+parser=argparse.ArgumentParser()
+parser.add_argument('--stage',required=True,type=Path,help='Verified Image0 stage from owner backup')
+original=parser.parse_args().stage.resolve()
+if not original.is_dir():raise SystemExit('Verified stage missing; no tests run')
 with tempfile.TemporaryDirectory() as d:
  t=Path(d)
  valid=t/'valid'
