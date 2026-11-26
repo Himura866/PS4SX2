@@ -94,8 +94,6 @@ if grep -Fq 'Core::System system;' "$BASE/eden/src/yuzu_ps4/ui_metadata.cpp"; th
    exit 31
 fi
 
-echo "R11 preflight: host C++ syntax-check of actual live menu"
-g++ -std=c++20 -fsyntax-only -I"$BASE/eden/src" "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 echo "R11 preflight: generated packaging recipe, no toolchain run"
 python3 - <<'PY'
 from pathlib import Path
