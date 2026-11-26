@@ -29,6 +29,13 @@ void R11GameCheckpoint(const char* step, const char* detail=nullptr, bool reset=
 def main(root):
     p=root/"eden/src/yuzu_ps4/main.cpp"
     s=p.read_text(encoding="utf8")
+    # Include the crash checkpoint in the already-functional Export Logs to USB flow.
+    s=once(s,
+        '    const char* names[] = {"eden.log", "eden.previous.log", "xmb-trace.log", "boot-trace.log",\n'
+        '                           "crash.log", "samples.log"};',
+        '    const char* names[] = {"eden.log", "eden.previous.log", "xmb-trace.log", "boot-trace.log",\n'
+        '                           "crash.log", "samples.log", "HIMURA_R13_GAME_STATUS.txt"};',
+        "USB includes R13 crash checkpoint")
     s=once(s,
         'constexpr char Version[] = "1.0";',
         TRACE+'\nconstexpr char Version[] = "1.0";',
