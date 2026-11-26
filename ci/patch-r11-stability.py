@@ -98,16 +98,16 @@ def main(root):
     # transition. The already-existing ten-second status cadence avoids
     # disk writes on individual frames. These counters do not claim game FPS.
     s=once(s,
-        '        if (now >= next_status) {\\n            LOG_INFO(Frontend,',
-        '        if (now >= next_status) {\\n'
-        '            char r13_state[192];\\n'
-        '            std::snprintf(r13_state, sizeof(r13_state),\\n'
-        '                "quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu",\\n'
-        '                static_cast<unsigned long long>(Common::PS4Diagnostics::composites.load()),\\n'
-        '                static_cast<unsigned long long>(Common::PS4Diagnostics::flips.load()),\\n'
-        '                static_cast<unsigned long long>(Common::PS4Diagnostics::audio_buffers.load()),\\n'
-        '                static_cast<unsigned long long>(ps4_heap_overflow_size() >> 20));\\n'
-        '            R11GameCheckpoint("andamento do jogo (10 s)", r13_state);\\n'
+        '        if (now >= next_status) {\n            LOG_INFO(Frontend,',
+        '        if (now >= next_status) {\n'
+        '            char r13_state[192];\n'
+        '            std::snprintf(r13_state, sizeof(r13_state),\n'
+        '                "quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu",\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::composites.load()),\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::flips.load()),\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::audio_buffers.load()),\n'
+        '                static_cast<unsigned long long>(ps4_heap_overflow_size() >> 20));\n'
+        '            R11GameCheckpoint("andamento do jogo (10 s)", r13_state);\n'
         '            LOG_INFO(Frontend,',
         "R13 ten-second crash checkpoint")
     s=once(s,
