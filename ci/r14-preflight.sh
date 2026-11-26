@@ -3,6 +3,20 @@
 set -Eeuo pipefail
 bash -n ci/himura-switch-build.sh
 python3 -m py_compile ci/r14-adapt-orbis.py ci/r14-prepare-art.py ci/r14-enable-update-manager.py
+python3 -m py_compile ci/r14-fix-libcxx-random.py
+# Verify the exact failing LLVM 18.1.8 translation unit before triggering
+# another expensive SDK build. This downloads only random.cpp, not LLVM itself.
+mkdir -p "$WORK/libcxx/src"
+curl --fail --silent --show-error --location --retry 2 \
+  -o "$WORK/libcxx/src/random.cpp" \
+  https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/libcxx/src/random.cpp
+python3 ci/r14-fix-libcxx-random.py "$WORK/libcxx/src/random.cpp"
+python3 ci/r14-fix-libcxx-random.py "$WORK/libcxx/src/random.cpp"
+grep -Fq '#  if !defined(__ORBIS__) && __has_include(<sys/ioctl.h>) && __has_include(<linux/random.h>)' \
+  "$WORK/libcxx/src/random.cpp"
+grep -Fq 'random_fix = ' ci/himura-switch-build.sh
+echo 'R14 LLVM random.cpp PS4 guard verified and repeatable'
+
 ROOT="$(pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
