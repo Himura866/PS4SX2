@@ -206,7 +206,7 @@ jobs:
             python -m py_compile ci/test-v15-image0-stage-gates.py
             python -m py_compile ci/v15-preflight-gp4-from-exact-app0.py
             python -m py_compile ci/test-v15-preflight-gp4-from-exact-app0.py
-            python - <<'PY'
+            python - \<<'PY'
             import importlib.util, tempfile
             from pathlib import Path
             for name in ('prepare-neweden-v15-image0.py','v15-preflight-gp4-from-exact-app0.py'):
@@ -225,7 +225,7 @@ jobs:
                 else:
                     raise AssertionError('GP4 safety gate accepted missing Image0')
             PY
-            python - <<'PY'
+            python - \<<'PY'
             from pathlib import Path
             s = Path("ci/prepare-neweden-v15-image0.py").read_text()
             assert "EDNP00001-app0/" in s
@@ -271,7 +271,7 @@ jobs:
           command: |
             mkdir -p v15-pkg-status v15-pkg-output
             python3 -m py_compile ci/build-neweden-v15-pkg.py ci/v15-preflight-gp4-from-exact-app0.py
-            python3 - <<'PY'
+            python3 - \<<'PY'
             from pathlib import Path
             import subprocess, sys, tempfile
             builder=Path('ci/build-neweden-v15-pkg.py')
@@ -321,7 +321,7 @@ jobs:
             curl --fail --location --show-error --silent --retry 2 --proto '=https' --tlsv1.2 \
               "${V15_PRIVATE_STAGE_URL}" -o /tmp/v15-stage.zip
             echo "ef08100c3ea0d3cc0d96bbfc9ee6e350e0b2dd57937cfd323a39b32f9bccb5db  /tmp/v15-stage.zip" | sha256sum -c -
-            python3 - <<'PY'
+            python3 - \<<'PY'
             import zipfile
             from pathlib import Path
             p=Path('/tmp/v15-stage.zip')
