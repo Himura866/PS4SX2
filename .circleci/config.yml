@@ -102,6 +102,7 @@ workflows:
                 - himura-switch-r11-approved-art
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
+                - himura-switch-r11-videoout-onion-diagnostic
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
