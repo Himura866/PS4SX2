@@ -30,7 +30,7 @@ def run(args):
         approved_sha='ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
         if sha(icon_src)!=approved_sha: raise ValueError('R13 external icon source hash mismatch')
         with Image.open(icon_src) as src:
-            icon_image=ImageOps.fit(src.convert('RGB'),(512,512),Image.Resampling.LANCZOS)
+            icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
             icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
         r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
         gp4=tmp/'experimental.gp4'
