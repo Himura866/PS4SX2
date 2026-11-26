@@ -53,23 +53,23 @@ def patch(root: Path):
     # submit flip, even though that does not prove visible scanout.
     # Keep every old mode as a fallback if the console rejects onion.
     p=replace_once(p,
-        'const DisplayMode DisplayModes[] = {\\n'
-        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1920x1080 ABGR garlic"},\\n'
+        'const DisplayMode DisplayModes[] = {\n'
+        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1920x1080 ABGR garlic"},\n'
         '    {1280, 720, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1280x720 ABGR garlic"},',
-        'const DisplayMode DisplayModes[] = {\\n'
-        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WB_ONION, "1920x1080 ABGR onion (CPU coherent)"},\\n'
-        '    {1280, 720, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WB_ONION, "1280x720 ABGR onion (CPU coherent)"},\\n'
-        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1920x1080 ABGR garlic"},\\n'
+        'const DisplayMode DisplayModes[] = {\n'
+        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WB_ONION, "1920x1080 ABGR onion (CPU coherent)"},\n'
+        '    {1280, 720, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WB_ONION, "1280x720 ABGR onion (CPU coherent)"},\n'
+        '    {1920, 1080, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1920x1080 ABGR garlic"},\n'
         '    {1280, 720, ORBIS_VIDEO_OUT_PIXEL_FORMAT_A8B8G8R8_SRGB, ORBIS_KERNEL_WC_GARLIC, "1280x720 ABGR garlic"},',
         "prefer CPU coherent HOME buffers")
 
     # Any previous successful flip only proves submission, not that the PS4
     # compositor actually scanned out the buffer; log the selected memory mode.
     p=replace_once(p,
-        '            g_working_mode = candidate;\\n            return;',
-        '            g_working_mode = candidate;\\n'
-        '            LOG_INFO(Frontend, "R11 HOME selected VideoOut memory_type={}, format={:#x}",\\n'
-        '                     candidate.memory_type, candidate.format);\\n'
+        '            g_working_mode = candidate;\n            return;',
+        '            g_working_mode = candidate;\n'
+        '            LOG_INFO(Frontend, "R11 HOME selected VideoOut memory_type={}, format={:#x}",\n'
+        '                     candidate.memory_type, candidate.format);\n'
         '            return;',
         "selected mode diagnostic")
 
