@@ -38,7 +38,8 @@ with image.open('rb') as handle:
     assert handle.read(4) == bytes([17,9,7,255]), "inert controller bar returned"
 changed = set(subprocess.check_output(["git","-C",str(base),"diff","--name-only"],
                                       text=True).splitlines())
-expected = {"frontend/menu/rom_menu.cpp", "frontend/ps4_platform.h", "package-eden.sh"}
+expected = {"frontend/menu/rom_menu.cpp", "frontend/ps4_platform.h",
+            "package-eden.sh", "assets/icon0.png"}
 assert changed == expected, f"unexpected upstream core changes: {changed ^ expected}"
 patches = list((base/"patches/eden").glob("*.patch"))
 assert len(patches) >= 40, f"expected PS4-specific upstream patch series, got {len(patches)}"
