@@ -68,11 +68,11 @@ jobs:
               libssl-dev zlib1g-dev
             clang-21 --version | head -1
       - run:
-          name: Gerar HIMURA SWITCH PS4 R11 PKG com UI, capas, FPS e XMB
+          name: Preparar bibliotecas PS4 sem compilar o aplicativo
           no_output_timeout: 45m
           command: |
             export JOBS=2
-            bash ci/build-r11-samurai-library.sh
+            R11_DEPS_ONLY=1 bash ci/build-r11-samurai-library.sh
       - save_cache:
           key: r11-ps4-deps-v1-eden-fab246c-llvm2116-mesa2608-orbis106
           paths:
@@ -83,6 +83,12 @@ jobs:
             - .himura-r11-build/src/mesa
             - .himura-r11-build/src/libdrm
             - .himura-r11-build/build/mesa
+      - run:
+          name: Compilar apenas emulador atualizado e empacotar PKG R11
+          no_output_timeout: 45m
+          command: |
+            export JOBS=2
+            R11_PKG_ONLY=1 bash ci/build-r11-samurai-library.sh
       - store_artifacts:
           path: switch-r11-reports
           destination: switch-r11-reports
@@ -102,6 +108,7 @@ workflows:
                 - himura-switch-r11-approved-art
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
+                - himura-switch-r11-splash-fastbuild
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
@@ -111,3 +118,4 @@ workflows:
                 - himura-switch-r11-samurai-library
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
+                - himura-switch-r11-splash-fastbuild
