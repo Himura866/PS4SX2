@@ -267,6 +267,22 @@ jobs:
           destination: V15-R13-capa-externa-SOMENTE
 
 
+  testar_gp4_openorbis_real_v15:
+    docker:
+      - image: cimg/go:1.23
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: V15 - compilar e testar CLI GP4 oficial com arquivos sinteticos
+          no_output_timeout: 10m
+          command: |
+            set -euo pipefail
+            git clone -q --depth 1 https://github.com/OpenOrbis/create-gp4.git /tmp/v15-gp4-test-src
+            test "$(git -C /tmp/v15-gp4-test-src rev-parse HEAD)" = bf8e66e9e9bdd92e41e1697893bc8098a151fa24
+            (cd /tmp/v15-gp4-test-src/cmd/create-gp4 && go build -o /tmp/v15-gp4-test)
+            python3 ci/test-v15-real-create-gp4.py --create-gp4 /tmp/v15-gp4-test
+
   construir_pkg_neweden_v15_experimental:
     docker:
       - image: cimg/go:1.23
@@ -380,10 +396,16 @@ workflows:
             branches:
               only:
                 - himura-switch-neweden-0489-pkg-direct
+      - testar_gp4_openorbis_real_v15:
+          filters:
+            branches:
+              only:
+                - himura-switch-neweden-0489-pkg-direct
       - construir_pkg_neweden_v15_experimental:
           requires:
             - auditar_neweden_v15_image0
             - validar_neweden_v15_r13_assets
+            - testar_gp4_openorbis_real_v15
           filters:
             branches:
               only:
