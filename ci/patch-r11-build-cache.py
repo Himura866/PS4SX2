@@ -81,7 +81,7 @@ fi
 stage 01_host check_host''',
         "package-only reuse of prepared checkout")
     s=once(s,
-        'stage 09_eden_pkg build_pkg\\nSTAGE="complete"',
+        'stage 09_eden_pkg build_pkg\nSTAGE="complete"',
         '''if test "${R11_DEPS_ONLY:-0}" = "1"; then
   echo "R11: dependencies prepared; safe to save cache before app compilation"
   STAGE="dependencies_complete"
