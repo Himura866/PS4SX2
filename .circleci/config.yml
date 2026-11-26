@@ -271,6 +271,31 @@ jobs:
           command: |
             mkdir -p v15-pkg-status v15-pkg-output
             python3 -m py_compile ci/build-neweden-v15-pkg.py ci/v15-preflight-gp4-from-exact-app0.py
+            python3 - <<'PY'
+            from pathlib import Path
+            import subprocess, sys, tempfile
+            builder=Path('ci/build-neweden-v15-pkg.py')
+            source=builder.read_text(encoding='utf-8')
+            assert "required=True,help='REQUIRED: verified R13" in source
+            assert "r13_external_icon_sha256" in source
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                out=root/'no-pkg'
+                command=[sys.executable,str(builder),
+                    '--image0',str(root/'missing-input'),
+                    '--out',str(out),
+                    '--create-gp4',str(root/'missing-create-gp4'),
+                    '--pkgtool',str(root/'missing-PkgTool.Core'),
+                    '--allow-experimental']
+                missing_icon=subprocess.run(command, capture_output=True, text=True)
+                assert missing_icon.returncode==2 and '--r13-icon' in missing_icon.stderr
+                assert not out.exists()
+                missing_stage=subprocess.run(command+['--r13-icon','assets/r11-approved-icon.webp'],
+                    capture_output=True,text=True)
+                assert missing_stage.returncode==2 and 'Image0 missing' in missing_stage.stderr
+                assert not out.exists()
+            print('PASS: builder fails closed on missing approved R13 icon and missing private Image0')
+            PY
             if [ "${V15_ALLOW_EXPERIMENTAL_PKG:-}" != "1" ]; then
               echo "BLOCKED: V15 experimental build needs explicit private CI approval" | tee v15-pkg-status/STATUS.txt
               exit 0
@@ -290,7 +315,8 @@ jobs:
             fi
             set -euo pipefail
             sudo apt-get update -qq
-            sudo apt-get install -y -qq python3 unzip curl ca-certificates libicu-dev
+            sudo apt-get install -y -qq python3 python3-pil unzip curl ca-certificates libicu-dev
+            python3 -c 'from PIL import Image, ImageOps; print("Pillow ready for verified R13 WebP icon")'
             mkdir -p /tmp/v15-input /tmp/v15-tools
             curl --fail --location --show-error --silent --retry 2 --proto '=https' --tlsv1.2 \
               "${V15_PRIVATE_STAGE_URL}" -o /tmp/v15-stage.zip
@@ -321,7 +347,8 @@ jobs:
             python3 ci/build-neweden-v15-pkg.py \
               --image0 /tmp/v15-input/image0 --out v15-pkg-output \
               --create-gp4 /tmp/v15-tools/create-gp4 \
-              --pkgtool /tmp/v15-tools/PkgTool.Core --allow-experimental
+              --pkgtool /tmp/v15-tools/PkgTool.Core \
+              --r13-icon assets/r11-approved-icon.webp --allow-experimental
             echo "EXPERIMENTAL PKG produced; V15 runtime UI and console boot NOT tested" > v15-pkg-status/STATUS.txt
       - store_artifacts:
           path: v15-pkg-status
