@@ -253,6 +253,36 @@ run_stage "compilar-eden" "ci/60-eden.sh"
 test -s "$ROOT/build-eden/bin/eden-ps4" || { echo "ELF ausente"; exit 14; }
 cp -f "$ROOT/build-eden/bin/eden-ps4" "$PKG_ARTIFACTS/eden-ps4.elf"
 STAGE="empacotar-pkg"
+# Keep the original Orbis-EDEN packaging procedure, but remove unsafe
+# find|grep|head pipelines: with pipefail, head can make find fail with 141.
+# Exact upstream anchors prevent accidentally changing an unknown revision.
+python3 - "$ROOT/ci/70-package.sh" <<'PYPKGSIGPIPE'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+changes = [
+    ("find build-eden -name 'eden-ps4' -type f | head -1",
+     "find build-eden -name 'eden-ps4' -type f -print -quit"),
+    ("find \"$SDK_ROOT\" \"$ROOT/deps/oo-release\" -type f -iname 'PkgTool.Core.dll' 2>/dev/null | head -1",
+     "find \"$SDK_ROOT\" \"$ROOT/deps/oo-release\" -type f -iname 'PkgTool.Core.dll' -print -quit 2>/dev/null"),
+]
+for old, new in changes:
+    if s.count(old) != 1:
+        raise SystemExit(f'HIMURA R14 packaging upstream drift: {old}')
+    s = s.replace(old, new, 1)
+old = 'find_tool() { find "$SDK_ROOT" "$ROOT/deps/oo-release" "$OO" -type f -iname "$1" 2>/dev/null | grep -i -v \'\\.exe$\' | grep -i -E \'linux|/bin/\' | head -1; }'
+new = """find_tool() {
+  find "$SDK_ROOT" "$ROOT/deps/oo-release" "$OO" -type f -iname "$1" 2>/dev/null |
+    awk 'tolower($0) !~ /\\.exe$/ && (tolower($0) ~ /linux|\\/bin\\//) { if (!found) { print; found=1 } }'
+}"""
+if s.count(old) != 1:
+    raise SystemExit('HIMURA R14 packaging upstream drift: find_tool')
+s = s.replace(old, new, 1)
+p.write_text(s)
+print('HIMURA R14: package tool discovery SIGPIPE/141 guarded')
+PYPKGSIGPIPE
+bash -n "$ROOT/ci/70-package.sh"
 run_stage "empacotar-pkg" "ci/70-package.sh"
 find "$ROOT/out-eden" -maxdepth 1 -type f -name '*.pkg' -size +1M -print -quit | grep -q . || {
   echo "Nenhum PKG valido gerado"
