@@ -23,11 +23,11 @@ with tempfile.TemporaryDirectory() as d:
  try: mod.make(valid,t/'accepted')
  except ValueError: pass
  else: raise AssertionError('Output overwrite not blocked')
- cases=[('eboot.bin','corrupted executable'),('sce_sys/param.sfo','corrupted SFO'),('sce_sys/icon0.png','corrupted icon'),('stacktest.nro','missing file')]
+ cases=[('eboot.bin','corrupted executable'),('sce_sys/param.sfo','corrupted SFO'),('sce_sys/icon0.png','corrupted icon'),('stacktest.nro','missing file'),('sce_module/libc.prx','corrupted module'),('gputest.nro','corrupted NRO'),('sce_sys/keystone','changed keystone'),('symbols.zst','corrupted symbols')]
  for ix,(name,label) in enumerate(cases):
   bad=t/('bad'+str(ix));shutil.copytree(original,bad)
   p=bad/name
-  if ix==3:p.unlink()
+  if name=='stacktest.nro':p.unlink()
   else:
    with p.open('r+b') as f:
     f.seek(17);old=f.read(1);f.seek(17);f.write(bytes([old[0]^1]))
