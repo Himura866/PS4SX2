@@ -30,6 +30,9 @@ jobs:
             apt-get update -qq
             apt-get install -y -qq ca-certificates git curl openssh-client python3
       - checkout
+      - restore_cache:
+          keys:
+            - r11-ps4-deps-v1-eden-fab246c-llvm2116-mesa2608-orbis106
       - run:
           name: Verificar scripts e menu superior R11
           command: |
@@ -46,6 +49,8 @@ jobs:
             python3 -m py_compile ci/patch-r11-stability.py
             python3 -m py_compile ci/patch-r11-approved-menu.py
             python3 -m py_compile ci/patch-r11-home-return.py
+            python3 -m py_compile ci/patch-r11-videoout-visibility.py
+            python3 -m py_compile ci/patch-r11-build-cache.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
@@ -68,6 +73,16 @@ jobs:
           command: |
             export JOBS=2
             bash ci/build-r11-samurai-library.sh
+      - save_cache:
+          key: r11-ps4-deps-v1-eden-fab246c-llvm2116-mesa2608-orbis106
+          paths:
+            - /opt/pacbrew/ps4
+            - .himura-r11-build/sysroot
+            - .himura-r11-build/src/llvm-project-21.1.6.src
+            - .himura-r11-build/src/mesa-26.0.8.tar.xz
+            - .himura-r11-build/src/mesa
+            - .himura-r11-build/src/libdrm
+            - .himura-r11-build/build/mesa
       - store_artifacts:
           path: switch-r11-reports
           destination: switch-r11-reports
@@ -86,6 +101,7 @@ workflows:
                 - himura-switch-r11-performance-staging
                 - himura-switch-r11-approved-art
                 - himura-switch-r11-art-and-home
+                - himura-switch-r11-videoout-cache-fix
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
