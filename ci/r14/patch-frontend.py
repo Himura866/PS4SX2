@@ -78,9 +78,9 @@ DRAW = r'''void Draw(Canvas& c, const std::vector<MenuEntry>& entries, int selec
                selected_card ? Red : 0xFF3D4356);
         c.Print(x + 17, y + 36, entries[index].source, Red, bg, 7);
         const std::string title = DisplayName(entries[index].name);
-        c.Print(x + 17, y + 91, title.substr(0, 17), White, bg, 17);
-        if (title.size() > 17) {
-            c.Print(x + 17, y + 136, title.substr(17, 17), White, bg, 17);
+        c.Print(x + 17, y + 91, title.substr(0, 14), White, bg, 14);
+        if (title.size() > 14) {
+            c.Print(x + 17, y + 136, title.substr(14, 14), White, bg, 14);
         }
         if (selected_card) {
             c.Print(x + 17, y + 192, "X: INICIAR", White, bg);
