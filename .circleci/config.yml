@@ -207,6 +207,25 @@ jobs:
             python -m py_compile ci/v15-preflight-gp4-from-exact-app0.py
             python -m py_compile ci/test-v15-preflight-gp4-from-exact-app0.py
             python - <<'PY'
+            import importlib.util, tempfile
+            from pathlib import Path
+            for name in ('prepare-neweden-v15-image0.py','v15-preflight-gp4-from-exact-app0.py'):
+                p=Path('ci')/name
+                spec=importlib.util.spec_from_file_location(name.replace('-','_'),p)
+                m=importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(m)
+            with tempfile.TemporaryDirectory() as d:
+                root=Path(d)
+                try:
+                    m.make(root/'missing-image0',root/'output')
+                except ValueError as exc:
+                    assert 'missing' in str(exc).lower(),str(exc)
+                    assert not (root/'output').exists()
+                    print('PASS: GP4 gate rejects missing original files without output')
+                else:
+                    raise AssertionError('GP4 safety gate accepted missing Image0')
+            PY
+            python - <<'PY'
             from pathlib import Path
             s = Path("ci/prepare-neweden-v15-image0.py").read_text()
             assert "EDNP00001-app0/" in s
