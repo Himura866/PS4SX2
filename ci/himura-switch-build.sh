@@ -83,10 +83,12 @@ echo "Fonte Orbis auditada: $actual; Eden base 5f142c79; 46 patches PS4"
 
 # Adapt ONLY this pinned upstream checkout; never mutate the source branch or R13.
 STAGE="adaptar-r14-frontend"
-# Baseline: original PS4 frontend and package, no HIMURA skin or features.
-echo "BASELINE: preserving original Orbis-EDEN menu, controls and packaging"
+# UI R01: add native credit screen on pinned Orbis-EDEN test source only.
+# This does not touch or repackage the uploaded New Eden 04.89 executable.
+python3 ci/himura-credits-r01.py "$ROOT"
 bash -n "$ROOT/ci/70-package.sh"
-echo "BASELINE: upstream source kept intact (except CI toolchain compatibility)"
+if [ ! -s "$ROOT/licenses/HIMURA-CREDITS.txt" ]; then echo "CREDITOS ausentes"; exit 24; fi
+echo "UI R01: creditos nativos e licenca GPL incluidos; fonte experimental Orbis-EDEN"
 
 STAGE="baixar-sdk"
 curl --fail --location --retry 3 \
