@@ -64,6 +64,33 @@ else
 fi''',
         "Mesa setup")
 
+    # First CI phase prepares expensive dependencies and stores a reusable cache
+    # BEFORE compiling the app, so an app compilation error does not throw it away.
+    s=once(s,
+        'stage 01_host check_host',
+        '''if test "${R11_PKG_ONLY:-0}" = "1"; then
+  echo "R11: package phase using prepared dependencies and patched checkout"
+  test -s "$EDEN/eden/ps4/build.sh"
+  test -s "$REPORT/eden4-source-commit.txt"
+  test -s "$PS4_BUILD_ROOT/sysroot/lib/libc++.a"
+  test -s "$PS4_BUILD_ROOT/build/mesa/src/amd/vulkan/libvulkan_radeon.a"
+  stage 09_eden_pkg build_pkg
+  STAGE="complete"
+  exit 0
+fi
+stage 01_host check_host''',
+        "package-only reuse of prepared checkout")
+    s=once(s,
+        'stage 09_eden_pkg build_pkg\\nSTAGE="complete"',
+        '''if test "${R11_DEPS_ONLY:-0}" = "1"; then
+  echo "R11: dependencies prepared; safe to save cache before app compilation"
+  STAGE="dependencies_complete"
+  exit 0
+fi
+stage 09_eden_pkg build_pkg
+STAGE="complete"''',
+        "cache checkpoint before app compilation")
+
     # With a cache miss we still compile all dependencies as before.
     for required in ("stage 09_eden_pkg build_pkg", "stage 06b_ps4_link_smoke", "stage 06c_ffmpeg_link_smoke"):
         if required not in s: raise RuntimeError("R11 cache: critical build stage missing: "+required)
