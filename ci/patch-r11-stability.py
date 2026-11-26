@@ -36,10 +36,10 @@ def main(root):
     # Default to Handheld (720p guest resolution) for NEW settings files. If
     # user already chose Docked, LoadOptions() preserves that preference.
     s=once(s,
-        '{"docked", "Modo do console",\n'
+        '{"docked", "Console mode",\n'
         '     "Docked: games render at up to 1080p. Handheld: 720p, less GPU work and memory (faster).", "display",\n'
         '     {{"1", "Docked"}, {"0", "Handheld"}}},',
-        '{"docked", "Console mode",\n'
+        '{"docked", "Modo do console",\n'
         '      "Portatil: usa 720p e menos memoria/GPU. TV: ate 1080p, exige mais desempenho.", "display",\n'
         '      {{"0", "Portatil (recomendado)"}, {"1", "Modo TV"}}},',
         "safe default mode")
