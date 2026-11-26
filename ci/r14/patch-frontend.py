@@ -110,7 +110,8 @@ def apply(repo: Path):
     menu = repo / "frontend/menu/rom_menu.cpp"
     platform = repo / "frontend/ps4_platform.h"
     pkg = repo / "package-eden.sh"
-    for path in (menu, platform, pkg):
+    linux_pkg = repo / "ci/70-package.sh"
+    for path in (menu, platform, pkg, linux_pkg):
         if not path.is_file():
             raise RuntimeError(f"Missing Orbis source: {path}")
     s = menu.read_text(encoding="utf8")
@@ -169,7 +170,28 @@ def apply(repo: Path):
             'FILES="$FILES skin/himura-r14-menu.bgra"',
             "ship approved image in PKG")
     pkg.write_text(p, encoding="utf8")
-    print("R14 Orbis frontend/UI and native packaging patched successfully")
+
+    # The Orbis Linux/CircleCI path uses a SECOND packager, not package-eden.sh.
+    p = linux_pkg.read_text(encoding="utf8")
+    for a, b, label in [
+        ('TITLE="NX on Orbis"; TITLE_ID="EDPS00001"',
+         'TITLE="HIMURA SWITCH PS4 R14"; TITLE_ID="HIMU00014"', "Linux pkg title/id"),
+        ('CID="IV0000-' + title_ref + '_00-EDENPS4000000000"',
+         'CID="IV0000-' + title_ref + '_00-HIMURASWITCHR14X"', "Linux pkg content id"),
+        ('python3 "$ROOT/probe/make-icon.py" "$ST/sce_sys/icon0.png" "NX"',
+         'cp "$ROOT/assets/icon0.png" "$ST/sce_sys/icon0.png"', "Linux pkg approved icon"),
+        ('s APP_VER Utf8 8 "01.00"', 's APP_VER Utf8 8 "01.14"', "Linux pkg app version"),
+        ('s VERSION Utf8 8 "01.00"', 's VERSION Utf8 8 "01.14"', "Linux pkg version"),
+    ]:
+        p = one(p, a, b, label)
+    anchor = 'FILES="eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/about/right.sprx sce_module/libc.prx sce_module/libSceFios2.prx assets/misc/hbmenu.nro assets/misc/hbmenu-LICENSE.txt"'
+    p = one(p, anchor, anchor + '\n'
+            'mkdir -p "$ST/skin"\n'
+            'cp "$ROOT/assets/himura-r14-menu.bgra" "$ST/skin/himura-r14-menu.bgra"\n'
+            'FILES="$FILES skin/himura-r14-menu.bgra"',
+            "Linux pkg approved backdrop")
+    linux_pkg.write_text(p, encoding="utf8")
+    print("R14 Orbis frontend/UI and both native packaging paths patched successfully")
     print("CPU/JIT/Vulkan/memory upstream source is unchanged")
 
 if __name__ == "__main__":
