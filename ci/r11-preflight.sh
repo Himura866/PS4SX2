@@ -111,7 +111,18 @@ PY
 if grep -Fq 'status.flipArg > previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"; then
  echo 'ERROR: stale Vulkan flip condition can cause a timeout' >&2; exit 34
 fi
-grep -Fq 'c.FillRoundRect(94, 434, 1732, 406' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+echo 'R13 preflight: approved wallpaper, five localized masks, working focus and version label'
+if grep -Fq 'c.FillRoundRect(94, 434, 1732, 406' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then
+  echo 'R13 preflight ERROR: opaque wide panel still hides samurai art' >&2
+  exit 36
+fi
+grep -Fq 'c.DrawImage(picture, 0, 0);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'c.FillRoundRect(137, 437, 349, 364' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'c.FillRoundRect(1478, 450, 317, 330' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'c.Text("R13", 728, 164, 35' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'R11NeonCover(canvas, left, TileTop, TileSize, st.time)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'else start(st.game_focus);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'case 5: st.modal = Modal::Power;' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 echo "R11 preflight: validate diagnostic path argument is C-compatible"
 grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
 # R13: the final patched binary must expose durable diagnostics in Portuguese.
