@@ -189,6 +189,7 @@ workflows:
             branches:
               only:
                 - himura-switch-r14-orbis-ui-integration
+                - himura-switch-r14-libcxx-random-fix
       - compilar_r14_orbis_pkg:
           filters:
             branches:
