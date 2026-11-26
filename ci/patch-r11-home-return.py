@@ -27,10 +27,10 @@ def patch(root: Path):
         '    void Update(', "input reset")
     s=once(s,
         '    while (true) {\n'
-        '        auto display = std::make_unique<OrbisFrontend::Display>();',
+        '        HimuraBootTrace("launcher VideoOut begin");\n',
         '    while (true) {\n'
         '        input.Reset();\n'
-        '        auto display = std::make_unique<OrbisFrontend::Display>();',
+        '        HimuraBootTrace("launcher VideoOut begin");\n',
         "reset after return to HOME")
     s=once(s,
         '        int launch = -1;\n'
