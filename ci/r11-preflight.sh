@@ -132,6 +132,9 @@ PY
 python3 ci/patch-r11-build-cache.py ci/.r11-build-generated.sh
 bash -n ci/.r11-build-generated.sh
 grep -Fq 'R11_CACHE_V1' ci/.r11-build-generated.sh
+grep -Fq 'EDEN4_VERSION="01.12"' ci/.r11-build-generated.sh
+grep -Fq 'EDEN_PKG_SUFFIX="-R12"' ci/.r11-build-generated.sh
+grep -Fq 'HIMURA SWITCH PS4-01.12-R12.pkg' ci/.r11-build-generated.sh
 grep -Fq 'stage 09_eden_pkg build_pkg' ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu \
