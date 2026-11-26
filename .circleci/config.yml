@@ -113,3 +113,4 @@ workflows:
                 - himura-switch-r11-samurai-library
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
+                - himura-switch-r11-hide-ps4-splash
