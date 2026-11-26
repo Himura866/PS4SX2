@@ -121,3 +121,4 @@ workflows:
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
                 - himura-switch-r12-active-user-videoout
+                - himura-switch-r15-first-frame-diagnostics
