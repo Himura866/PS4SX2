@@ -251,8 +251,12 @@ jobs:
             python -m py_compile ci/prepare-neweden-v15-r13-art.py
             python -m py_compile ci/test-neweden-v15-r13-art.py
             python ci/test-neweden-v15-r13-art.py
+            python -m py_compile ci/v15-audit-r13-wallpaper.py ci/test-v15-audit-r13-wallpaper.py
+            python ci/test-v15-audit-r13-wallpaper.py
             python ci/prepare-neweden-v15-r13-art.py --assets assets --out /tmp/v15-r13-verified
             mkdir -p v15-r13-artifacts
+            python ci/v15-audit-r13-wallpaper.py --asset assets/r11-approved-menu.webp \
+              --out v15-r13-artifacts/wallpaper-quality-report.json
             cp /tmp/v15-r13-verified/external-ps4/icon0.png v15-r13-artifacts/icon0.png
             cp /tmp/v15-r13-verified/manifest-r13-v15.json v15-r13-artifacts/manifest-r13-v15.json
       - store_artifacts:
