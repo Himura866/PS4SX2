@@ -273,7 +273,9 @@ jobs:
       - run:
           name: V15 - verificar provisionamento PRIVADO sem expor binarios
           command: |
-            mkdir -p v15-pkg-status v15-pkg-output
+            mkdir -p v15-pkg-status
+            # The builder refuses an output directory that already exists.
+            # Leave v15-pkg-output absent until actual PKG validation succeeds.
             python3 -m py_compile ci/build-neweden-v15-pkg.py ci/v15-preflight-gp4-from-exact-app0.py
             python3 - \<<'PY'
             from pathlib import Path
@@ -348,6 +350,7 @@ jobs:
             unzip -q /tmp/v15-pkgtool.zip -d /tmp/v15-tools
             chmod +x /tmp/v15-tools/PkgTool.Core
             export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+            test ! -e v15-pkg-output || { echo 'BLOCKED: stale PKG output path exists'; exit 2; }
             python3 ci/build-neweden-v15-pkg.py \
               --image0 /tmp/v15-input/image0 --out v15-pkg-output \
               --create-gp4 /tmp/v15-tools/create-gp4 \
