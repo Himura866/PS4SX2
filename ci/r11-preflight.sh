@@ -125,6 +125,12 @@ grep -Fq 'else start(st.game_focus);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'case 5: st.modal = Modal::Power;' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 echo "R11 preflight: validate diagnostic path argument is C-compatible"
 grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq '{"docked", "Modo do console",' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq '"Portatil (recomendado)"' "$BASE/eden/src/yuzu_ps4/main.cpp"
+if grep -Fq '{"docked", "Console mode",' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
+  echo 'R13 preflight ERROR: console setting not translated' >&2
+  exit 37
+fi
 # R13: the final patched binary must expose durable diagnostics in Portuguese.
 # It is not enough for the Python patch itself to mention these features.
 grep -Fq 'HIMURA_R13_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"
