@@ -16,9 +16,9 @@ TRACE=r'''
 // One write per loading stage, never in the render hot path; useful even if a
 // fatal PS4 exception prevents eden.log from flushing. All errors are ignored.
 void R11GameCheckpoint(const char* step, const char* detail=nullptr, bool reset=false) noexcept {
-    FILE* out=std::fopen("/data/EdenPS4/HIMURA_R11_GAME_STATUS.txt",reset?"w":"a");
+    FILE* out=std::fopen("/data/EdenPS4/HIMURA_R13_GAME_STATUS.txt",reset?"w":"a");
     if(!out)return;
-    std::fprintf(out,"R11 %s",step);
+    std::fprintf(out,"R13 %s",step);
     if(detail) std::fprintf(out," | %.240s",detail);
     std::fputc('\n',out);
     std::fflush(out);
@@ -94,6 +94,22 @@ def main(root):
         '        }\n'
         '        controller.Read();',
         "first video frame checkpoints")
+    # Low-frequency, crash-resilient checkpoint for the cutscene -> gameplay
+    # transition. The already-existing ten-second status cadence avoids
+    # disk writes on individual frames. These counters do not claim game FPS.
+    s=once(s,
+        '        if (now >= next_status) {\\n            LOG_INFO(Frontend,',
+        '        if (now >= next_status) {\\n'
+        '            char r13_state[192];\\n'
+        '            std::snprintf(r13_state, sizeof(r13_state),\\n'
+        '                "quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu",\\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::composites.load()),\\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::flips.load()),\\n'
+        '                static_cast<unsigned long long>(Common::PS4Diagnostics::audio_buffers.load()),\\n'
+        '                static_cast<unsigned long long>(ps4_heap_overflow_size() >> 20));\\n'
+        '            R11GameCheckpoint("andamento do jogo (10 s)", r13_state);\\n'
+        '            LOG_INFO(Frontend,',
+        "R13 ten-second crash checkpoint")
     s=once(s,
         '    LOG_INFO(Frontend, "Stopping emulation");',
         '    R11GameCheckpoint("stopping emulation");\n'
