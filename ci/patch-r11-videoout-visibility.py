@@ -23,6 +23,14 @@ def patch(root: Path):
     p=platform.read_text(encoding="utf8")
     v=swapchain.read_text(encoding="utf8")
 
+    # PS4 keeps displaying the PKG pic1.png until SystemService releases its
+    # splash layer. A successful VideoOut flip alone does not prove it is visible.
+    s=replace_once(s,
+        'extern "C" int sceSystemServiceLoadExec(const char*, char* const[]);',
+        'extern "C" int sceSystemServiceHideSplashScreen();\n'
+        'extern "C" int sceSystemServiceLoadExec(const char*, char* const[]);',
+        "PS4 splash system service declaration")
+
     # Distinguish "still seeing PS4 shell wallpaper" from HOME scanning
     # stalls and failures to create or submit the first VideoOut frame.
     s=replace_once(s,
@@ -36,6 +44,10 @@ def patch(root: Path):
         '                     960, 520, 40, {0xffffff}, Ui::Align::Center);\n'
         '        HimuraBootTrace("launcher first VideoOut submit begin");\n'
         '        display->Present(canvas->Pixels());\n'
+        '        // PS4 SystemService owns the PKG splash; release it after the first frame.\n'
+        '        const int hide_splash_result = sceSystemServiceHideSplashScreen();\n'
+        '        LOG_INFO(Frontend, "R11 hide PS4 splash result: {:#x}", static_cast<u32>(hide_splash_result));\n'
+        '        HimuraBootTrace(hide_splash_result < 0 ? "launcher splash hide FAILED" : "launcher splash hidden");\n'
         '        HimuraBootTrace("launcher first VideoOut submit OK");\n'
         '        HimuraBootTrace("launcher host.Begin begin");',
         "first visible HOME frame")
