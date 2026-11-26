@@ -114,6 +114,15 @@ fi
 grep -Fq 'c.FillRoundRect(94, 434, 1732, 406' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 echo "R11 preflight: validate diagnostic path argument is C-compatible"
 grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
+# R13: the final patched binary must expose durable diagnostics in Portuguese.
+# It is not enough for the Python patch itself to mention these features.
+grep -Fq 'HIMURA_R13_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'andamento do jogo (10 s)' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu' "$BASE/eden/src/yuzu_ps4/main.cpp"
+if grep -Fq 'HIMURA_R11_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
+    echo 'R13 preflight ERROR: outdated crash checkpoint file path' >&2
+    exit 35
+fi
 if grep -Fq 'R11GameCheckpoint("launch begin",game.path,true);' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
    echo "R11 preflight ERROR: std::string passed as const char* without c_str()" >&2
    exit 32
