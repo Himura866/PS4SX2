@@ -150,7 +150,14 @@ jobs:
       - run:
           name: Verificar fontes oficiais e interface HIMURA antes de compilar
           no_output_timeout: 15m
-          command: bash ci/r14-preflight.sh
+          command: |
+            if [ "$CIRCLE_BRANCH" = "himura-switch-r14-upstream-baseline" ]; then
+              bash -n ci/himura-switch-build.sh
+              python3 -m py_compile ci/r14-adapt-orbis.py
+              echo 'BASELINE: validacao sintatica; frontend original mantido'
+            else
+              bash ci/r14-preflight.sh
+            fi
       - run:
           name: Compilar Orbis Eden de 25-11 e empacotar HIMURA SWITCH PS4 R14
           no_output_timeout: 45m
@@ -205,6 +212,7 @@ workflows:
             branches:
               only:
                 - himura-switch-r14-orbis-build
+                - himura-switch-r14-upstream-baseline
       - auditar_r14_orbis_core:
           filters:
             branches:
