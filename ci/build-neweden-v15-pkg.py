@@ -33,6 +33,8 @@ def run(args):
         if len(candidates)!=1 or candidates[0].stat().st_size<5_000_000: raise ValueError('No PS4 PKG produced')
         with candidates[0].open('rb') as f:
             if f.read(4)!=bytes((0x7f,))+b'CNT': raise ValueError('Not a PS4 PKG header')
+        # Parse and validate internal PKG digests with the real LibOrbisPkg tool.
+        subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_validate',str(candidates[0])],cwd=stage,timeout=600,check=True)
         args.out.mkdir(parents=True)
         dest=args.out/'HIMURA-V15-EXPERIMENTAL-NAO-INSTALAR.pkg'
         shutil.copyfile(candidates[0],dest)
