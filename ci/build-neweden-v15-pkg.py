@@ -52,7 +52,22 @@ def run(args):
         tmp=Path(temp)
         report=mod.make(image,tmp/'gp4-audit')
         assert report['file_count']==15
+        # PS4 CE failure: the experimental Image0 executable is NOT the exact
+        # working New Eden 04.89 eboot that was exported from the user's PS4.
+        # Do not make another package from an unverified replacement ELF.
+        known_good_eboot='5defaadbc08c5ba58b62dbe2a006c892dfab9d941f99900b696feff3fe812381'
+        actual_eboot=sha(image/'eboot.bin')
+        if actual_eboot != known_good_eboot:
+            raise ValueError('BOOT SAFETY STOP: staged eboot differs from proven working New Eden 04.89. '
+                             'Rebuild Image0 with exact original app0; refusing another potentially non-booting PKG. '
+                             'staged='+actual_eboot+' expected='+known_good_eboot)
         stage=tmp/'Image0';shutil.copytree(image,stage)
+        # Rebrand visible title/version ONLY after verifying the original SFO,
+        # never the installed app, PS4 title ID, data directory or eboot.
+        branded_spec=importlib.util.spec_from_file_location('sfo_brand',Path(__file__).with_name('v15-brand-sfo.py'))
+        branded_mod=importlib.util.module_from_spec(branded_spec)
+        branded_spec.loader.exec_module(branded_mod)
+        branded=branded_mod.patch(stage/'sce_sys'/'param.sfo')
         # Preserve the exact R13 external PS4 cover; NOT an internal UI asset.
         # A R13 external PS4 icon is mandatory for this experiment; the menu art is separate.
         from PIL import Image, ImageOps
@@ -85,6 +100,10 @@ def run(args):
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
                   'content_id':CONTENT_ID,'size':dest.stat().st_size,
                   'r13_external_icon_sha256':r13_icon_hash,
+                  'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
+                  'sfo_sha256':branded['branded_sfo_sha256'],
+                  'working_base_eboot_sha256':known_good_eboot,
+                  'original_title_id_preserved':True,
                   'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test']}
         (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
         return manifest
