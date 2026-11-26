@@ -48,6 +48,12 @@ DRAW = r'''void Draw(Canvas& c, const std::vector<MenuEntry>& entries, int selec
     constexpr int Cols = 5;
     constexpr int Page = 10;
     R14Background(c);
+    // Cover only inert screenshot arrows, dots and the old R13 badge.
+    // Navigation and version are drawn by the running program instead.
+    c.Fill(62, 570, 65, 118, Back);
+    c.Fill(1807, 570, 75, 118, Back);
+    c.Fill(790, 797, 345, 61, Back);
+    c.Fill(697, 123, 150, 70, Back);
     c.Fill(80, 50, 670, 132, Back);
     c.Fill(80, 50, 7, 132, Red);
     c.Print(105, 73, "HIMURA SWITCH PS4 | R14", White, Back);
