@@ -60,6 +60,7 @@ jobs:
             python3 -m py_compile ci/generate-r11-branding.py
             python3 -m py_compile ci/patch-r11-authorship.py
             python3 -m py_compile ci/patch-r11-stability.py
+            python3 -m py_compile ci/patch-r13-mii-defaults.py
             python3 -m py_compile ci/patch-r11-approved-menu.py
             python3 -m py_compile ci/patch-r11-home-return.py
             python3 -m py_compile ci/patch-r11-videoout-visibility.py
