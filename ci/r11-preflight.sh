@@ -13,7 +13,7 @@ for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
  ci/patch-r11-stability.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
- ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py; do
+ ci/patch-r11-videoout-visibility.py ci/patch-r11-hide-ps4-splash.py ci/patch-r11-build-cache.py; do
   python3 -m py_compile "$py"
 done
 
@@ -27,6 +27,7 @@ sha="fab246cbac93c7995aaf451dca83ae93ba0bd234"
 paths=[
   "eden/src/yuzu_ps4/ui_launcher.cpp",
   "eden/src/yuzu_ps4/platform.cpp",
+  "eden/src/yuzu_ps4/CMakeLists.txt",
   "eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp",
   "eden/src/yuzu_ps4/ui_canvas.h",
   "eden/src/yuzu_ps4/ui_canvas.cpp",
@@ -53,7 +54,7 @@ echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
  patch-r10-boot-trace patch-r11-stability patch-r11-approved-menu patch-r11-home-return \
- patch-r11-videoout-visibility; do
+ patch-r11-videoout-visibility patch-r11-hide-ps4-splash; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
@@ -75,6 +76,11 @@ echo 'R11 preflight: verify VideoOut takeover and corrected Vulkan flip completi
 grep -Fq 'launcher first VideoOut submit OK' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'launcher interactive HOME rendered' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq '__builtin_ia32_sfence()' "$BASE/eden/src/yuzu_ps4/platform.cpp"
+grep -Fq '#include <orbis/SystemService.h>' "$BASE/eden/src/yuzu_ps4/platform.cpp"
+grep -Fq 'sceSystemServiceHideSplashScreen();' "$BASE/eden/src/yuzu_ps4/platform.cpp"
+grep -Fq 'HIMURA_R11_SPLASH_STATUS.txt' "$BASE/eden/src/yuzu_ps4/platform.cpp"
+grep -Fq 'SceSystemService' "$BASE/eden/src/yuzu_ps4/CMakeLists.txt"
+echo 'R11 preflight: real PS4 system splash handoff after first presented frame verified'
 grep -Fq 'status.flipArg >= previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"
 if grep -Fq 'status.flipArg > previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"; then
  echo 'ERROR: stale Vulkan flip condition can cause a timeout' >&2; exit 34
@@ -128,7 +134,7 @@ grep -Fq 'R11_CACHE_V1' ci/.r11-build-generated.sh
 grep -Fq 'stage 09_eden_pkg build_pkg' ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu \
- patch-r11-home-return patch-r11-videoout-visibility; do
+ patch-r11-home-return patch-r11-videoout-visibility patch-r11-hide-ps4-splash; do
  grep -Fq "ci/$patch.py" ci/.r11-build-generated.sh
 done
 echo "R11 PREFLIGHT PASSED: code transformations and PKG recipe checked."
