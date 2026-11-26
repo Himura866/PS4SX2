@@ -33,7 +33,8 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r11-stability.py "$EDEN"\n'
      '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
      '  python3 ci/patch-r11-home-return.py "$EDEN"\n'
-     '  python3 ci/patch-r11-videoout-visibility.py "$EDEN"\n')
+     '  python3 ci/patch-r11-videoout-visibility.py "$EDEN"\n'
+     '  python3 ci/patch-r11-hide-system-splash.py "$EDEN"\n')
 Path(sys.argv[2]).write_text(source, encoding="utf-8")
 PY
 # Reuse pinned PS4 dependencies on later builds; still compile this R11's ELF and PKG.
