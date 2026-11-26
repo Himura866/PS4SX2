@@ -20,6 +20,7 @@ done
 echo "R11 preflight: download exact pinned patch targets"
 python3 - "$BASE" <<'PY'
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 import sys
 from urllib.request import urlopen
 root=Path(sys.argv[1])
@@ -39,7 +40,7 @@ paths=[
   "eden/ps4/ui-preview/preview.cpp",
   "eden/ps4/build.sh",
 ]
-for path in paths:
+def fetch(path):
     output=root/path
     output.parent.mkdir(parents=True,exist_ok=True)
     url=f"https://raw.githubusercontent.com/xatyy/Eden4/{sha}/{path}"
@@ -47,6 +48,8 @@ for path in paths:
     if not data: raise RuntimeError(f"empty source file: {path}")
     output.write_bytes(data)
     print("Fetched:",path,flush=True)
+with ThreadPoolExecutor(max_workers=4) as pool:
+    list(pool.map(fetch, paths))
 PY
 
 echo "R11 preflight: all patches in packaging order"
@@ -76,13 +79,32 @@ grep -Fq 'launcher first VideoOut submit OK' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'launcher interactive HOME rendered' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq '__builtin_ia32_sfence()' "$BASE/eden/src/yuzu_ps4/platform.cpp"
 grep -Fq 'status.flipArg >= previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"
-echo 'R12 preflight: signed-in PS4 user must own both visible VideoOut ports'
-grep -Fq 'sceVideoOutOpen(display_user, 0, 0, nullptr)' "$BASE/eden/src/yuzu_ps4/platform.cpp"
-grep -Fq 'sceVideoOutOpen(display_user, 0, 0, nullptr)' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"
-if grep -Fq 'sceVideoOutOpen(0xff' "$BASE/eden/src/yuzu_ps4/platform.cpp" || \
-   grep -Fq 'sceVideoOutOpen(0xff' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"; then
-  echo 'R12 ERROR: system user still owns video output' >&2; exit 36
-fi
+echo 'R12 preflight: splash dismissal follows the first interactive presentation'
+python3 - "$BASE" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]) / "eden/src"
+main = (root / "yuzu_ps4/main.cpp").read_text()
+render = main.index('HimuraBootTrace("launcher interactive HOME rendered")')
+present = main.index('display->Present(canvas->Pixels())', render)
+first_frame = main.index('if (++frames == 1)', present)
+hide = main.index('const int result = sceSystemServiceHideSplashScreen()', first_frame)
+assert main.count('sceSystemServiceHideSplashScreen()') == 2
+assert present < first_frame < hide
+
+for filename, handle in [
+    ("yuzu_ps4/platform.cpp", "video"),
+    ("video_core/renderer_vulkan/vk_swapchain_ps4.cpp", "ps4->video"),
+]:
+    source = (root / filename).read_text()
+    lookup = source.index('sceUserServiceGetInitialUser(&display_user)')
+    primary = source.index(f'{handle} = sceVideoOutOpen(display_user,', lookup)
+    fallback_guard = source.index(f'if ({handle} < 0) {{', primary)
+    fallback = source.index(f'{handle} = sceVideoOutOpen(0xff,', fallback_guard)
+    assert lookup < primary < fallback_guard < fallback
+    assert source.count('sceVideoOutOpen(0xff,') == 1
+PY
 if grep -Fq 'status.flipArg > previous' "$BASE/eden/src/video_core/renderer_vulkan/vk_swapchain_ps4.cpp"; then
  echo 'ERROR: stale Vulkan flip condition can cause a timeout' >&2; exit 34
 fi
@@ -132,6 +154,8 @@ PY
 python3 ci/patch-r11-build-cache.py ci/.r11-build-generated.sh
 bash -n ci/.r11-build-generated.sh
 grep -Fq 'R11_CACHE_V1' ci/.r11-build-generated.sh
+grep -Fq 'R11_DEPS_ONLY' ci/.r11-build-generated.sh
+grep -Fq 'R11_PKG_ONLY' ci/.r11-build-generated.sh
 grep -Fq 'EDEN4_VERSION="01.12"' ci/.r11-build-generated.sh
 grep -Fq 'EDEN_PKG_SUFFIX="-R12"' ci/.r11-build-generated.sh
 grep -Fq 'HIMURA SWITCH PS4-01.12-R12.pkg' ci/.r11-build-generated.sh

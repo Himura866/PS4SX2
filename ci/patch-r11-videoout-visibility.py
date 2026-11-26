@@ -23,6 +23,12 @@ def patch(root: Path):
     p=platform.read_text(encoding="utf8")
     v=swapchain.read_text(encoding="utf8")
 
+    s=replace_once(s,
+        'extern "C" int sceSystemServiceLoadExec(const char*, char* const[]);',
+        'extern "C" int sceSystemServiceHideSplashScreen();\n'
+        'extern "C" int sceSystemServiceLoadExec(const char*, char* const[]);',
+        "PS4 splash system service declaration")
+
     # Distinguish "still seeing PS4 shell wallpaper" from HOME scanning
     # stalls and failures to create or submit the first VideoOut frame.
     s=replace_once(s,
@@ -46,6 +52,14 @@ def patch(root: Path):
         '            if (frames == 0) HimuraBootTrace("launcher interactive HOME rendered");\n'
         '            if (frames == 0) LOG_INFO(Frontend, "PS4 HOME menu: first present");',
         "interactive frame checkpoint")
+    s=replace_once(s,
+        '                HimuraBootTrace("launcher first frame OK");',
+        '                HimuraBootTrace("launcher first frame OK");\n'
+        '                // The PS4 shell owns the splash above the application frame.\n'
+        '                const int result = sceSystemServiceHideSplashScreen();\n'
+        '                LOG_INFO(Frontend, "PS4 HOME: hide splash result {:#x}", u32(result));\n'
+        '                HimuraBootTrace(result < 0 ? "launcher splash hide FAILED" : "launcher splash hidden");',
+        "dismiss system splash after the first completed interactive frame")
 
     # Guarantee writes to write-combined VideoOut memory have been ordered
     # before submitting their flip to the PS4 scanout engine.
