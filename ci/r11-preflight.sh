@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r11-approved-menu.py; do
+ ci/patch-r11-stability.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py; do
   python3 -m py_compile "$py"
 done
 
@@ -49,7 +49,7 @@ PY
 echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
- patch-r10-boot-trace patch-r11-stability patch-r11-approved-menu; do
+ patch-r10-boot-trace patch-r11-stability patch-r11-approved-menu patch-r11-home-return; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
@@ -65,6 +65,8 @@ grep -Fq 'POD DO HIMURA' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'void Canvas::CopyOpaque' "$BASE/eden/src/yuzu_ps4/ui_canvas.cpp"
 grep -Fq 'R11GameCheckpoint' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'bool menu_armed = false' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'constexpr uint32_t return_buttons' "$BASE/eden/src/yuzu_ps4/main.cpp"
 echo "R11 preflight: validate diagnostic path argument is C-compatible"
 grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
 if grep -Fq 'R11GameCheckpoint("launch begin",game.path,true);' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
@@ -109,7 +111,7 @@ subprocess.run([sys.executable,"-","ci/build-r08-eden4-pkg.sh",
 PY
 bash -n ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
- generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu; do
+ generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu patch-r11-home-return; do
  grep -Fq "ci/$patch.py" ci/.r11-build-generated.sh
 done
 echo "R11 PREFLIGHT PASSED: code transformations and PKG recipe checked."
