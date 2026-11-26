@@ -31,6 +31,12 @@ assert 'TITLE_ID="HIMU00014"' in package
 assert 'HIMURASWITCHR14X' in package
 assert 's VERSION Utf8 8 "01.14"' in package
 assert 'skin/himura-r14-menu.bgra' in package
+linux_package = (base/"ci/70-package.sh").read_text()
+assert 'TITLE="HIMURA SWITCH PS4 R14"' in linux_package
+assert 'TITLE_ID="HIMU00014"' in linux_package
+assert 's VERSION Utf8 8 "01.14"' in linux_package
+assert 'cp "$ROOT/assets/icon0.png" "$ST/sce_sys/icon0.png"' in linux_package
+assert 'skin/himura-r14-menu.bgra' in linux_package
 image = base/"assets/himura-r14-menu.bgra"
 assert image.stat().st_size == 1920*1080*4
 with image.open('rb') as handle:
@@ -39,7 +45,7 @@ with image.open('rb') as handle:
 changed = set(subprocess.check_output(["git","-C",str(base),"diff","--name-only"],
                                       text=True).splitlines())
 expected = {"frontend/menu/rom_menu.cpp", "frontend/ps4_platform.h",
-            "package-eden.sh", "assets/icon0.png"}
+            "package-eden.sh", "ci/70-package.sh", "assets/icon0.png"}
 assert changed == expected, f"unexpected upstream core changes: {changed ^ expected}"
 patches = list((base/"patches/eden").glob("*.patch"))
 assert len(patches) >= 40, f"expected PS4-specific upstream patch series, got {len(patches)}"
