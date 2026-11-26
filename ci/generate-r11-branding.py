@@ -8,7 +8,7 @@ The runtime menu picture is distinct from sce_sys/pic1.png (PS4 XMB wallpaper).
 from pathlib import Path
 import hashlib
 import sys
-from PIL import Image, ImageOps, ImageFilter, ImageEnhance
+from PIL import Image, ImageOps, ImageFilter, ImageEnhance, ImageDraw
 
 ROOT=Path(__file__).resolve().parent.parent
 ASSETS=ROOT/"assets"
@@ -33,6 +33,11 @@ def main():
     menu=verified(ASSETS/"r11-approved-menu.webp", MENU_SHA)
     icon=ImageOps.fit(icon,(512,512),Image.Resampling.LANCZOS)
     menu=ImageOps.fit(menu,(1920,1080),Image.Resampling.LANCZOS)
+    # R13 user-tested artwork: original screenshot has six inert controller
+    # hints baked into its lower strip. Remove those printed glyphs from the
+    # runtime PNG so only the real PS4 launcher draws actionable controls.
+    # Keep the samurai, scenery, covers and red separator above this strip.
+    ImageDraw.Draw(menu).rectangle((0, 992, 1919, 1079), fill=(7, 9, 17))
     icon.save(out/"icon0.png",optimize=True)
     menu.save(out/"himura-r11-menu.png",optimize=True)
 
