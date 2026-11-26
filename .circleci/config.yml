@@ -204,6 +204,8 @@ jobs:
           command: |
             python -m py_compile ci/prepare-neweden-v15-image0.py
             python -m py_compile ci/test-v15-image0-stage-gates.py
+            python -m py_compile ci/v15-preflight-gp4-from-exact-app0.py
+            python -m py_compile ci/test-v15-preflight-gp4-from-exact-app0.py
             python - <<'PY'
             from pathlib import Path
             s = Path("ci/prepare-neweden-v15-image0.py").read_text()
