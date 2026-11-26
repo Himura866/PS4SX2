@@ -18,8 +18,6 @@ def validate_gp4_sources(gp4, stage, expected_paths):
     """
     document=ElementTree.parse(gp4)
     root=document.getroot()
-    if root.findtext("./volume/package") is not None:
-        raise ValueError("Unexpected GP4 package format")
     package=root.find("./volume/package")
     if package is None or package.get("content_id")!=CONTENT_ID:
         raise ValueError("GP4 content ID does not match app0")
