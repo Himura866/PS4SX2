@@ -134,6 +134,7 @@ fi
 # R13: the final patched binary must expose durable diagnostics in Portuguese.
 # It is not enough for the Python patch itself to mention these features.
 grep -Fq 'HIMURA_R13_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq '"crash.log", "samples.log", "HIMURA_R13_GAME_STATUS.txt"' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'andamento do jogo (10 s)' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu' "$BASE/eden/src/yuzu_ps4/main.cpp"
 if grep -Fq 'HIMURA_R11_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
