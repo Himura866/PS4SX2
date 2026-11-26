@@ -128,6 +128,42 @@ jobs:
           command: |
             bash ci/r14-preflight.sh
 
+  compilar_r14_orbis_pkg:
+    docker:
+      - image: ubuntu:24.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Preparar compiladores e ferramentas PS4 R14
+          no_output_timeout: 20m
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates git openssh-client curl build-essential \
+              clang-18 lld-18 llvm-18 llvm-18-dev cmake ninja-build make gcc g++ \
+              nasm autoconf automake libtool pkg-config perl ccache python3 \
+              python3-pil python3-mako python3-yaml meson glslang-tools \
+              libssl-dev zlib1g-dev libxml2-dev libdrm-dev \
+              xz-utils unzip zstd rsync
+            test -x /usr/lib/llvm-18/bin/clang
+      - checkout
+      - run:
+          name: Verificar fontes oficiais e interface HIMURA antes de compilar
+          no_output_timeout: 15m
+          command: bash ci/r14-preflight.sh
+      - run:
+          name: Compilar Orbis Eden de 25-11 e empacotar HIMURA SWITCH PS4 R14
+          no_output_timeout: 45m
+          command: |
+            export JOBS=2
+            bash ci/himura-switch-build.sh
+      - store_artifacts:
+          path: switch-build-reports
+          destination: R14-logs-e-erros
+      - store_artifacts:
+          path: switch-build-pkgs
+          destination: R14-pkg-e-elf
+
   auditar_r14_orbis_core:
     docker:
       - image: ubuntu:24.04
@@ -153,6 +189,11 @@ workflows:
             branches:
               only:
                 - himura-switch-r14-orbis-ui-integration
+      - compilar_r14_orbis_pkg:
+          filters:
+            branches:
+              only:
+                - himura-switch-r14-orbis-build
       - auditar_r14_orbis_core:
           filters:
             branches:
