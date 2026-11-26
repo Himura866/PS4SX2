@@ -33,3 +33,13 @@
 - A correção dos controles fictícios no papel de parede foi **preparada** na branch `himura-switch-r13-user-tests-staging` e **ainda não comprovada em PKG**.
 - Uma adaptação Mii para alguns jogos, inclusive Mario Kart, existe em outra ramificação `himura-switch-r13-mii-compat-staging`; **não comprova solução da tela de título**, que ocorre antes da seleção Mii.
 - Nenhuma correção dos congelamentos foi comprovada ainda em execução real no console.
+
+## Comparativo confirmado em 26/11: lançamento Orbis Eden de 25/11
+- Fonte oficial: https://github.com/MrKitsune9/Orbis-EDEN, commit `f004df1c7a812cc65703d8f937d0bd12a6d06a58` de 25/11/2026.
+- Base Orbis Eden: Eden `5f142c79` + 46 patches PS4, OpenOrbis/Mesa RADV, difere da base Eden4 `fab246cbac93c7995aaf451dca83ae93ba0bd234` usada pela R13. **Não presumir compatibilidade binária dos patches.**
+- A release Orbis Eden v2026-11-25 relata primeira imagem de Mario Kart 8 Deluxe em ~45 s e 30 FPS por volta de ~55 s. Página: https://store.brewology.com/ps4/orbis-eden/ . Sem gravação pareada e logs do mesmo console, não equiparar esses valores aos da R13.
+- A documentação do código base ainda descreve menus a 40–60 FPS e corridas de MK8D a 13–16 FPS nos testes anteriores. **60 FPS de menu não equivale a 60 FPS de gameplay.**
+- Recursos da release 25/11: configurações por jogo; cópias de segurança de saves; medição do tempo de carregamento `boot.log`/`tools/analyze-boot.py`; melhorias de configuração; suporte USB em teste.
+- Ainda não foi possível vincular, com prova oficial, o nome informal "New Eden v0.4.89" a esse commit ou a um pacote específico. Solicitar link exato se for necessário validar essa revisão.
+- Próxima fase técnica: isolar diferença em serviços Mii, CPU accuracy, inicialização de conteúdos/firmware, memória do processo e transição JIT->Vulkan, usando logs reais antes de mexer no core. Não declarar que importar patches elimina congelamentos.
+- Em 26/11, o estado GitHub do commit de CI R13 `08c93c95904bbf56d1677d5d8ebd203cae1e5e7e` tinha os dois checks CircleCI em `success`; isso comprova validação e compilação, **não compatibilidade de jogos**.
