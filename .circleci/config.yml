@@ -15,6 +15,19 @@ jobs:
             apt-get install -y -qq ca-certificates git openssh-client curl python3 python3-pil
       - checkout
       - run:
+          name: Validar alteracoes visuais R13 antes da compilacao
+          command: |
+            python3 -m py_compile ci/patch-r11-samurai-library.py
+            python3 - <<'PY'
+            from pathlib import Path
+            s = Path("ci/patch-r11-samurai-library.py").read_text()
+            assert 'c.Text("SWITCH PS4  |  R13"' in s, "Versao visual incorreta"
+            assert 'c.FillRoundRect(72, 350, 1780, 440' not in s, "Painel preto voltou"
+            assert 'c.StrokeRoundRect(72, 350, 1780, 440' not in s, "Borda do painel voltou"
+            assert 'R11NeonCover(canvas, left, TileTop, TileSize, st.time)' in s, "Neon ausente"
+            print("R13: verificacoes estaticas da interface aprovadas")
+            PY
+      - run:
           name: Testar codigo R11, menu, FPS, capas, arte e receita PKG
           no_output_timeout: 10m
           command: bash ci/r11-preflight.sh
