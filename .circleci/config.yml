@@ -110,6 +110,24 @@ jobs:
           path: switch-r11-pkgs
           destination: switch-r11-pkgs
 
+  validar_r14_menu_updates:
+    docker:
+      - image: ubuntu:24.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Preparar fontes e validador de imagens R14
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates git openssh-client python3 python3-pil g++
+      - checkout
+      - run:
+          name: Validar Orbis 25 de novembro, menu samurai e importacao NSP
+          no_output_timeout: 15m
+          command: |
+            bash ci/r14-preflight.sh
+
   auditar_r14_orbis_core:
     docker:
       - image: ubuntu:24.04
@@ -130,6 +148,11 @@ jobs:
 workflows:
   compilar_menu_superior_r11:
     jobs:
+      - validar_r14_menu_updates:
+          filters:
+            branches:
+              only:
+                - himura-switch-r14-orbis-ui-integration
       - auditar_r14_orbis_core:
           filters:
             branches:
