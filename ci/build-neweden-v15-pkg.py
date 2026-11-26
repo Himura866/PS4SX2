@@ -32,14 +32,14 @@ def run(args):
         candidates=list(generated.glob('*.pkg'))
         if len(candidates)!=1 or candidates[0].stat().st_size<5_000_000: raise ValueError('No PS4 PKG produced')
         with candidates[0].open('rb') as f:
-            if f.read(4)!=b'\\x7fCNT': raise ValueError('Not a PS4 PKG header')
+            if f.read(4)!=bytes((0x7f,))+b'CNT': raise ValueError('Not a PS4 PKG header')
         args.out.mkdir(parents=True)
         dest=args.out/'HIMURA-V15-EXPERIMENTAL-NAO-INSTALAR.pkg'
         shutil.copyfile(candidates[0],dest)
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
                   'content_id':CONTENT_ID,'size':dest.stat().st_size,
                   'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test']}
-        (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\\n')
+        (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
         return manifest
 def main():
     p=argparse.ArgumentParser()
