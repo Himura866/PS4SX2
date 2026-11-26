@@ -21,3 +21,17 @@ O script `ci/patch-r11-approved-menu.py` da R13 desenhava coberturas pretas opac
 - A funcionalidade completa do menu com botões reais no topo, carrossel sem painel preto, português, News/Temas removidos, FPS e créditos exige nova implementação específica na base `04.89` e teste no PS4 Pro.
 
 Aprovado como requisito; **não confundir documentação/asset com integração de runtime pronta**.
+
+
+## Correção obrigatória do escopo pelo usuário (18:33 BRT, 26/11/2026)
+
+**O papel de parede da R13 deve manter EXATAMENTE o mesmo aspecto visual**: cenário samurai, lua, montanha, paleta, posição de elementos, composição e proporções. **Não usar** a nova ilustração alternativa que havia sido criada como substituição.
+
+A edição solicitada na arte interna é **MÍNIMA**:
+- Retirar os **botões fictícios desenhados na faixa INFERIOR** do papel de parede. Os botões funcionais da interface devem permanecer no TOPO, mantendo o estilo visual antigo, mas implementados como ações reais do controlador.
+- Retirar o **fundo/painel preto colocado ABAIXO das capas dos jogos**, mostrando a cena no lugar dessa faixa. **Não desenhar outros retângulos escuros para esconder erros**.
+- **Todo o restante da arte da R13 deve ficar igual**, e a capa externa R13 continua exclusiva do mosaico de aplicativos do PS4.
+
+A imagem de referência aprovada ainda contém controles/capas e títulos incorporados aos pixels; por isso a implementação do menu deve evitar duplicar elementos reais sobre elementos fictícios. A fidelidade visual **não implica usar a própria captura como interface clicável**. A separação correta dos elementos deve ser testada visualmente antes de empacotar, sem reprojetar a cena.
+
+**Estado desta exigência:** documentação aprovada; arte limpa e integração funcional ao executável 04.89 ainda não validadas no PS4. Não divulgar PKG incompleto como funcional.
