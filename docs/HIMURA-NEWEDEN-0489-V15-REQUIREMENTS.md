@@ -7,7 +7,7 @@
 - O menu **Sobre / About** deverá exibir **HIMURA SWITCH PS4 — V15**, autores da base comprovados, créditos da personalização e licença aplicável. Preservar identificação técnica `Base New Eden 04.89` onde for adequado para suporte.
 - Retirar completamente o item **News/Notícias** do **menu principal**, inclusive o destino e a possibilidade de foco/navegação.
 - Retirar completamente o item **Temas** das **Configurações**, inclusive a seleção, navegação, telas de temas e dica de controle associada. Não remover recursos usados internamente por outros componentes sem análise.
-- Toda a **interface interna em pt-BR**: textos, títulos, submenus, configurações, caixas de confirmação, mensagens de erro e seção Sobre. Pedido de interface "dublada": confirmar com o usuário se inclui **narração por voz**, em vez de presumir que legendas em pt-BR são dublagem.
+- Toda a **interface interna em pt-BR**: textos, títulos, submenus, configurações, caixas de confirmação, mensagens de erro e seção Sobre. **Confirmação do usuário:** somente a interface escrita em **português brasileiro (pt-BR)**; traduzir menus, submenus, configurações, mensagens, avisos e seção Sobre. **Não implementar narração por voz nem dublagem.**
 - Botões de navegação **reais no topo**, não desenhados no papel de parede; fundo samurai interno sem a faixa inferior de botões fictícios.
 - Capa externa `icon0.png` **somente na tela de aplicativos do PS4**, nunca sobrepondo o menu interno.
 - Carrossel/grade de jogos sem painel preto invasivo, capas legíveis e seleção destacada; preservação de seleção, retorno, inicialização de jogos e áudio.
