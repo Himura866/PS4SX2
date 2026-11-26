@@ -83,11 +83,10 @@ echo "Fonte Orbis auditada: $actual; Eden base 5f142c79; 46 patches PS4"
 
 # Adapt ONLY this pinned upstream checkout; never mutate the source branch or R13.
 STAGE="adaptar-r14-frontend"
-python3 ci/r14-adapt-orbis.py "$ROOT"
-python3 ci/r14-prepare-art.py "$ROOT"
-python3 ci/r14-enable-update-manager.py "$ROOT"
+# Baseline: original PS4 frontend and package, no HIMURA skin or features.
+echo "BASELINE: preserving original Orbis-EDEN menu, controls and packaging"
 bash -n "$ROOT/ci/70-package.sh"
-echo "R14: artwork and standalone HIMURA packaging prepared"
+echo "BASELINE: upstream source kept intact (except CI toolchain compatibility)"
 
 STAGE="baixar-sdk"
 curl --fail --location --retry 3 \
