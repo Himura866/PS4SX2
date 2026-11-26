@@ -217,6 +217,23 @@ export GIT_COMMITTER_EMAIL="himura-ci@users.noreply.github.com"
 export GIT_AUTHOR_NAME="$GIT_COMMITTER_NAME"
 export GIT_AUTHOR_EMAIL="$GIT_COMMITTER_EMAIL"
 git -C "$ROOT" var GIT_COMMITTER_IDENT
+# Upstream 60-eden.sh uses 'git log --oneline | head -5' under pipefail.
+# Git can receive SIGPIPE (141) once head has its five lines, even after
+# all Eden patches succeeded. Replace only this diagnostic display pipeline.
+python3 - "$ROOT/ci/60-eden.sh" <<'PYSIGPIPE'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+old = 'git -C deps/eden log --oneline | head -5'
+new = 'git -C deps/eden log -5 --oneline'
+if s.count(old) != 1:
+    raise SystemExit('HIMURA R14: unexpected upstream Eden log command; refusing blind patch')
+p.write_text(s.replace(old, new, 1))
+assert new in p.read_text() and old not in p.read_text()
+print('HIMURA R14: Eden git log SIGPIPE/141 guard applied')
+PYSIGPIPE
+bash -n "$ROOT/ci/60-eden.sh"
 run_stage "compilar-eden" "ci/60-eden.sh"
 test -s "$ROOT/build-eden/bin/eden-ps4" || { echo "ELF ausente"; exit 14; }
 cp -f "$ROOT/build-eden/bin/eden-ps4" "$PKG_ARTIFACTS/eden-ps4.elf"
