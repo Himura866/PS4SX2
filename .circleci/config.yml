@@ -259,6 +259,77 @@ jobs:
           path: v15-r13-artifacts
           destination: V15-R13-capa-externa-SOMENTE
 
+
+  construir_pkg_neweden_v15_experimental:
+    docker:
+      - image: cimg/go:1.23
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: V15 - verificar provisionamento PRIVADO sem expor binarios
+          command: |
+            mkdir -p v15-pkg-status v15-pkg-output
+            python3 -m py_compile ci/build-neweden-v15-pkg.py ci/v15-preflight-gp4-from-exact-app0.py
+            if [ "${V15_ALLOW_EXPERIMENTAL_PKG:-}" != "1" ]; then
+              echo "BLOCKED: V15 experimental build needs explicit private CI approval" | tee v15-pkg-status/STATUS.txt
+              exit 0
+            fi
+            if [ -z "${V15_PRIVATE_STAGE_URL:-}" ]; then
+              echo "BLOCKED: V15_PRIVATE_STAGE_URL absent (private exact 04.89 Image0 ZIP)" | tee v15-pkg-status/STATUS.txt
+              exit 0
+            fi
+            printf 'READY_FOR_BUILD\n' > v15-pkg-status/STATUS.txt
+      - run:
+          name: V15 - baixar Image0 privada e compilar com OpenOrbis (somente se habilitado)
+          no_output_timeout: 25m
+          command: |
+            if ! grep -qx READY_FOR_BUILD v15-pkg-status/STATUS.txt; then
+              echo "V15 PKG skipped, see STATUS.txt"
+              exit 0
+            fi
+            set -euo pipefail
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq python3 unzip curl ca-certificates libicu-dev
+            mkdir -p /tmp/v15-input /tmp/v15-tools
+            curl --fail --location --show-error --silent --retry 2 --proto '=https' --tlsv1.2 \
+              "${V15_PRIVATE_STAGE_URL}" -o /tmp/v15-stage.zip
+            echo "ef08100c3ea0d3cc0d96bbfc9ee6e350e0b2dd57937cfd323a39b32f9bccb5db  /tmp/v15-stage.zip" | sha256sum -c -
+            python3 - <<'PY'
+            import zipfile
+            from pathlib import Path
+            p=Path('/tmp/v15-stage.zip')
+            expected={'image0/blocks.nro','image0/breakout.nro','image0/eboot.bin','image0/gputest.nro',
+            'image0/hello.nro','image0/nativetest.nro','image0/nativetest_gnu.nro','image0/padtest.nro',
+            'image0/sce_module/libSceFios2.prx','image0/sce_module/libc.prx','image0/sce_sys/icon0.png',
+            'image0/sce_sys/keystone','image0/sce_sys/param.sfo','image0/stacktest.nro',
+            'image0/symbols.zst','manifest-v15-stage.json'}
+            with zipfile.ZipFile(p) as z:
+                assert {f.filename for f in z.infolist()}==expected
+                assert z.testzip() is None
+                z.extractall('/tmp/v15-input')
+            print('V15 verified private ZIP extraction')
+            PY
+            git clone -q --depth 1 https://github.com/OpenOrbis/create-gp4.git /tmp/v15-create-gp4
+            (cd /tmp/v15-create-gp4/cmd/create-gp4 && go build -o /tmp/v15-tools/create-gp4)
+            curl --fail --location --show-error --silent --retry 2 --proto '=https' --tlsv1.2 \
+              https://github.com/maxton/LibOrbisPkg/releases/download/v0.2/PkgTool.Core-linux-x64-0.2.231.zip \
+              -o /tmp/v15-pkgtool.zip
+            unzip -q /tmp/v15-pkgtool.zip -d /tmp/v15-tools
+            chmod +x /tmp/v15-tools/PkgTool.Core
+            export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+            python3 ci/build-neweden-v15-pkg.py \
+              --image0 /tmp/v15-input/image0 --out v15-pkg-output \
+              --create-gp4 /tmp/v15-tools/create-gp4 \
+              --pkgtool /tmp/v15-tools/PkgTool.Core --allow-experimental
+            echo "EXPERIMENTAL PKG produced; V15 runtime UI and console boot NOT tested" > v15-pkg-status/STATUS.txt
+      - store_artifacts:
+          path: v15-pkg-status
+          destination: V15-PKG-REAL-STATUS
+      - store_artifacts:
+          path: v15-pkg-output
+          destination: V15-EXPERIMENTAL-PKG-ONLY-IF-VERIFIED
+
 workflows:
   auditar_neweden_v15_prepack:
     jobs:
@@ -268,6 +339,14 @@ workflows:
               only:
                 - himura-switch-neweden-0489-pkg-direct
       - validar_neweden_v15_r13_assets:
+          filters:
+            branches:
+              only:
+                - himura-switch-neweden-0489-pkg-direct
+      - construir_pkg_neweden_v15_experimental:
+          requires:
+            - auditar_neweden_v15_image0
+            - validar_neweden_v15_r13_assets
           filters:
             branches:
               only:
