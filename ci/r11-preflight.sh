@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py; do
+ ci/patch-r11-stability.py ci/patch-r11-approved-menu.py; do
   python3 -m py_compile "$py"
 done
 
@@ -49,7 +49,7 @@ PY
 echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
- patch-r10-boot-trace patch-r11-stability; do
+ patch-r10-boot-trace patch-r11-stability patch-r11-approved-menu; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
@@ -57,6 +57,9 @@ done
 echo "R11 preflight: complete theme/assets and safe metadata"
 test -s "$BASE/branding/icon0.png"
 test -s "$BASE/branding/pic1.png"
+test -s "$BASE/branding/himura-r11-menu.png"
+grep -Fq '$STAGE/skin/himura-r11-menu.png' "$BASE/eden/ps4/build.sh"
+grep -Fq '/app0/skin/himura-r11-menu.png' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 test -s "$BASE/branding/HIMURA-ATTRIBUTION.txt"
 grep -Fq 'POD DO HIMURA' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'canvas.CopyOpaque(cached_background)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
@@ -106,7 +109,7 @@ subprocess.run([sys.executable,"-","ci/build-r08-eden4-pkg.sh",
 PY
 bash -n ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
- generate-r11-branding patch-r11-authorship patch-r11-stability; do
+ generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu; do
  grep -Fq "ci/$patch.py" ci/.r11-build-generated.sh
 done
 echo "R11 PREFLIGHT PASSED: code transformations and PKG recipe checked."
