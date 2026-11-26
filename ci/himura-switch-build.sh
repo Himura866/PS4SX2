@@ -8,7 +8,7 @@ WORK="$BASE/.himura-work"
 ROOT="$WORK/orbis-eden"
 REPORT="$BASE/switch-build-reports"
 PKG_ARTIFACTS="$BASE/switch-build-pkgs"
-SOURCE_COMMIT="c9a26c80d3b7a8b47f68b5a247fcee6d6d17707d"
+SOURCE_COMMIT="f004df1c7a812cc65703d8f937d0bd12a6d06a58"
 SDK_SHA256="f4f079a4df334b46a76996f895283904283d6a006f97102aafaa53d4ecfc9622"
 mkdir -p "$WORK" "$REPORT" "$PKG_ARTIFACTS"
 : > "$REPORT/build.log"
@@ -53,13 +53,34 @@ on_exit() {
 trap on_exit EXIT
 
 STAGE="baixar-fonte"
-git clone --depth 1 --single-branch --branch main https://github.com/MrKitsune9/Orbis-EDEN.git "$ROOT"
+# Fixamos a revisao auditada: nao usar o HEAD movel de main (ele mudou em 25/11).
+git init -q "$ROOT"
+git -C "$ROOT" remote add origin https://github.com/MrKitsune9/Orbis-EDEN.git
+git -C "$ROOT" fetch --depth 1 origin "$SOURCE_COMMIT"
+git -C "$ROOT" checkout --detach -q FETCH_HEAD
 actual="$(git -C "$ROOT" rev-parse HEAD)"
 printf '%s\n' "$actual" > "$REPORT/source-commit.txt"
 if [ "$actual" != "$SOURCE_COMMIT" ]; then
   echo "ERRO: origem mudou de commit; interrompido para nao usar codigo nao aprovado"
   exit 12
 fi
+# A base Orbis usa Eden 5f142c79 + 46 patches PS4. Abortar antes de instalar
+# SDK/compilar caso a cadeia de compatibilidade tenha mudado inesperadamente.
+for required in scripts/fetch-eden.sh \
+ patches/eden/0003-PS4-64-MiB-JIT-caches-generic-dynarmic-exception-han.patch \
+ patches/eden/0009-PS4-avoid-RADV-GFX7-GPU-hangs-from-indirect-count-dr.patch \
+ patches/eden/0027-ORBIS-commit-lazy-guest-memory-from-the-top-2-GiB-of.patch \
+ patches/eden/0031-PS4-built-in-Miis-when-database-is-empty.patch \
+ frontend/libc_wide_fixes.cpp frontend/ps4_platform.cpp tools/analyze-boot.py; do
+  test -s "$ROOT/$required" || { echo "ERRO: base Orbis incompleta: $required"; exit 16; }
+done
+patch_count="$(find "$ROOT/patches/eden" -maxdepth 1 -type f -name '*.patch' | wc -l | tr -d '[:space:]')"
+[ "$patch_count" = 46 ] || { echo "ERRO: esperados 46 patches PS4, achados $patch_count"; exit 17; }
+grep -Fq 'COMMIT=5f142c7926d0c7fcbbd0ce30794d72f638a43b2a' "$ROOT/scripts/fetch-eden.sh" || {
+  echo "ERRO: Eden base mudou, auditar antes de compilar"; exit 18;
+}
+echo "Fonte Orbis auditada: $actual; Eden base 5f142c79; 46 patches PS4"
+
 STAGE="baixar-sdk"
 curl --fail --location --retry 3 \
   --output "$WORK/orbis-sdk-v1.tar.gz" \
