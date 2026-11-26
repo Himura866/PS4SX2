@@ -49,13 +49,15 @@ R11_SKIN_SOURCE=r'''
                     c.FillRoundRect(65, 580, 50, 85, 9, {0x090e1b}, 0.95f);
                     c.FillRoundRect(1816, 580, 58, 85, 9, {0x090e1b}, 0.95f);
                     c.FillRoundRect(802, 807, 318, 43, 10, {0x090e1b}, 0.96f);
-                    c.FillRoundRect(964, 28, 930, 150, 15, {0x090d19}, 0.98f);
+                    c.FillRoundRect(964, 28, 930, 150, 15, {0x090d19}, 1.0f);
                     // The approved bitmap was made for R11; cover ONLY its
                     // baked version badge while keeping the original artwork.
                     c.FillRoundRect(705, 127, 124, 60, 10, {0xb60d21}, 0.98f);
                     c.Text("R13", 728, 164, 35, {0xffffff});
                     // Footer hints are actual LIVE controls, not baked screenshot.
-                    c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 0.95f);
+                    // Opaque footer: never let the printed, non-clickable
+                    // controller legends show through the live PS4 hints.
+                    c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);
                     c.HLine(0, Canvas::Width, 969, 3, {0xd52236}, 0.85f);
                     c.Text("POD DO HIMURA", 1820, 200, 20, {0xf8dfdf}, Align::Right);
                     return;
