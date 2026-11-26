@@ -215,10 +215,38 @@ jobs:
             print("INFO: No PKG build/PS4 boot is claimed or performed by this check")
             PY
 
+  validar_neweden_v15_r13_assets:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Instalar Pillow para validar artes R13 do proprio repositorio
+          command: python -m pip install --disable-pip-version-check 'Pillow==11.3.0'
+      - run:
+          name: Verificar capa externa R13 e isolar screenshot com botoes ficticios
+          command: |
+            python -m py_compile ci/prepare-neweden-v15-r13-art.py
+            python -m py_compile ci/test-neweden-v15-r13-art.py
+            python ci/test-neweden-v15-r13-art.py
+            python ci/prepare-neweden-v15-r13-art.py --assets assets --out /tmp/v15-r13-verified
+            mkdir -p v15-r13-artifacts
+            cp /tmp/v15-r13-verified/external-ps4/icon0.png v15-r13-artifacts/icon0.png
+            cp /tmp/v15-r13-verified/manifest-r13-v15.json v15-r13-artifacts/manifest-r13-v15.json
+      - store_artifacts:
+          path: v15-r13-artifacts
+          destination: V15-R13-capa-externa-SOMENTE
+
 workflows:
   auditar_neweden_v15_prepack:
     jobs:
       - auditar_neweden_v15_image0:
+          filters:
+            branches:
+              only:
+                - himura-switch-neweden-0489-pkg-direct
+      - validar_neweden_v15_r13_assets:
           filters:
             branches:
               only:
