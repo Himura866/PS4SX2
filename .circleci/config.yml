@@ -50,6 +50,7 @@ jobs:
             python3 -m py_compile ci/patch-r11-approved-menu.py
             python3 -m py_compile ci/patch-r11-home-return.py
             python3 -m py_compile ci/patch-r11-videoout-visibility.py
+            python3 -m py_compile ci/patch-r11-dismiss-system-splash.py
             python3 -m py_compile ci/patch-r11-build-cache.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
@@ -102,6 +103,7 @@ workflows:
                 - himura-switch-r11-approved-art
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
+                - himura-switch-r11-hide-splash-check
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
