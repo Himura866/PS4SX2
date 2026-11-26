@@ -110,6 +110,7 @@ workflows:
                 - himura-switch-r11-art-and-home
                 - himura-switch-r11-videoout-cache-fix
                 - himura-switch-r12-active-user-videoout
+                - himura-switch-r15-first-frame-diagnostics
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
