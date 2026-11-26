@@ -85,6 +85,7 @@ echo "Fonte Orbis auditada: $actual; Eden base 5f142c79; 46 patches PS4"
 STAGE="adaptar-r14-frontend"
 python3 ci/r14-adapt-orbis.py "$ROOT"
 python3 ci/r14-prepare-art.py "$ROOT"
+python3 ci/r14-enable-update-manager.py "$ROOT"
 bash -n "$ROOT/ci/70-package.sh"
 echo "R14: artwork and standalone HIMURA packaging prepared"
 
