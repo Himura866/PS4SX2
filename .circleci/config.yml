@@ -91,4 +91,6 @@ workflows:
             - validar_r11_antes_do_pkg
           filters:
             branches:
-              only: himura-switch-r11-samurai-library
+              only:
+                - himura-switch-r11-samurai-library
+                - himura-switch-r11-art-and-home
