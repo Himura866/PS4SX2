@@ -44,6 +44,7 @@ jobs:
             python3 -m py_compile ci/generate-r11-branding.py
             python3 -m py_compile ci/patch-r11-authorship.py
             python3 -m py_compile ci/patch-r11-stability.py
+            python3 -m py_compile ci/patch-r11-approved-menu.py
             python3 -m py_compile ci/patch-eden4-credits.py
             python3 -m py_compile ci/restore-r08-audio.py
             python3 -m py_compile ci/patch-r08-ffmpeg-link.py
@@ -82,6 +83,7 @@ workflows:
               only:
                 - himura-switch-r11-samurai-library
                 - himura-switch-r11-performance-staging
+                - himura-switch-r11-approved-art
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
