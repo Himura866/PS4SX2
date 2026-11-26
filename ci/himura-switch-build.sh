@@ -233,6 +233,21 @@ p.write_text(s.replace(old, new, 1))
 assert new in p.read_text() and old not in p.read_text()
 print('HIMURA R14: Eden git log SIGPIPE/141 guard applied')
 PYSIGPIPE
+# The nested fetch-eden.sh has a second 'git log | head' under pipefail.
+# Fix both diagnostic commands; neither change affects patch application.
+python3 - "$ROOT/scripts/fetch-eden.sh" <<'PYFETCHSIGPIPE'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+old = 'git log --oneline | head -3'
+new = 'git log -3 --oneline'
+if s.count(old) != 1:
+    raise SystemExit('HIMURA R14: nested Eden fetch log command changed unexpectedly')
+p.write_text(s.replace(old, new, 1))
+print('HIMURA R14: nested fetch-eden SIGPIPE/141 fixed')
+PYFETCHSIGPIPE
+bash -n "$ROOT/scripts/fetch-eden.sh"
 bash -n "$ROOT/ci/60-eden.sh"
 run_stage "compilar-eden" "ci/60-eden.sh"
 test -s "$ROOT/build-eden/bin/eden-ps4" || { echo "ELF ausente"; exit 14; }
