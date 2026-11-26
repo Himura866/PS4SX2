@@ -112,6 +112,7 @@ if grep -Fq 'status.flipArg > previous' "$BASE/eden/src/video_core/renderer_vulk
  echo 'ERROR: stale Vulkan flip condition can cause a timeout' >&2; exit 34
 fi
 grep -Fq 'c.FillRoundRect(94, 434, 1732, 406' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+grep -Fq 'no first game frame reached the renderer in 20 s' "$BASE/eden/src/yuzu_ps4/main.cpp"
 echo "R11 preflight: validate diagnostic path argument is C-compatible"
 grep -Fq 'R11GameCheckpoint("launch begin",game.path.c_str(),true);' "$BASE/eden/src/yuzu_ps4/main.cpp"
 if grep -Fq 'R11GameCheckpoint("launch begin",game.path,true);' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
@@ -159,9 +160,9 @@ bash -n ci/.r11-build-generated.sh
 grep -Fq 'R11_CACHE_V1' ci/.r11-build-generated.sh
 grep -Fq 'R11_DEPS_ONLY' ci/.r11-build-generated.sh
 grep -Fq 'R11_PKG_ONLY' ci/.r11-build-generated.sh
-grep -Fq 'EDEN4_VERSION="01.12"' ci/.r11-build-generated.sh
-grep -Fq 'EDEN_PKG_SUFFIX="-R12"' ci/.r11-build-generated.sh
-grep -Fq 'HIMURA SWITCH PS4-01.12-R12.pkg' ci/.r11-build-generated.sh
+grep -Fq 'EDEN4_VERSION="01.15"' ci/.r11-build-generated.sh
+grep -Fq 'EDEN_PKG_SUFFIX="-R15"' ci/.r11-build-generated.sh
+grep -Fq 'HIMURA SWITCH PS4-01.15-R15.pkg' ci/.r11-build-generated.sh
 grep -Fq 'stage 09_eden_pkg build_pkg' ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability patch-r11-approved-menu \
