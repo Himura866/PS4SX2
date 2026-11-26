@@ -193,7 +193,37 @@ jobs:
           no_output_timeout: 10m
           command: bash ci/audit-r14-orbis-base.sh
 
+  auditar_neweden_v15_image0:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: V15 04.89 - validar somente o codigo de pre-empacotamento
+          command: |
+            python -m py_compile ci/prepare-neweden-v15-image0.py
+            python -m py_compile ci/test-v15-image0-stage-gates.py
+            python - <<'PY'
+            from pathlib import Path
+            s = Path("ci/prepare-neweden-v15-image0.py").read_text()
+            assert "EDNP00001-app0/" in s
+            assert "IMAGE0 EXPERIMENTAL" in s
+            assert "NAO EH PKG" in s
+            assert "EXPERIMENTAL_EBOOT_SHA" in s
+            print("PASS: V15 prepack script is syntactically valid")
+            print("INFO: No PKG build/PS4 boot is claimed or performed by this check")
+            PY
+
 workflows:
+  auditar_neweden_v15_prepack:
+    jobs:
+      - auditar_neweden_v15_image0:
+          filters:
+            branches:
+              only:
+                - himura-switch-neweden-0489-pkg-direct
+
   compilar_menu_superior_r11:
     jobs:
       - validar_r14_menu_updates:
