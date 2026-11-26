@@ -206,8 +206,9 @@ jobs:
             python -m py_compile ci/test-v15-image0-stage-gates.py
             python -m py_compile ci/v15-preflight-gp4-from-exact-app0.py
             python -m py_compile ci/test-v15-preflight-gp4-from-exact-app0.py
-            python -m py_compile ci/test-v15-pkg-builder-gates.py
+            python -m py_compile ci/test-v15-pkg-builder-gates.py ci/test-v15-gp4-source-resolution.py
             python ci/test-v15-pkg-builder-gates.py
+            python ci/test-v15-gp4-source-resolution.py
             python - \<<'PY'
             import importlib.util, tempfile
             from pathlib import Path
