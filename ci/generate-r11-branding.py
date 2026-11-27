@@ -58,10 +58,37 @@ def main():
                 (1806,570,1885,681),(788,793,1135,859),
                 (696,117,838,197),(956,23,1906,190)):
         remove_mock(box)
-    # Continue the actual lower landscape to 1080p with a mirror extension;
-    # this starts at the last scenery row and avoids a solid black footer.
-    footer=ImageOps.flip(menu.crop((0,860,1920,970)))
-    menu.paste(footer,(0,970))
+    # Continue the scenery to the bottom, preserving the approved art and
+    # eliminating the hard horizontal reflection join reported on the TV.
+    # The source screenshot includes a baked controls row near the bottom.
+    # Only the generated PNG is modified; the original WebP is untouched.
+    seam_y = 970
+    footer=ImageOps.flip(menu.crop((0,860,1920,seam_y)))
+    menu.paste(footer,(0,seam_y))
+    # The reflected join has a sharp derivative reversal along one horizontal
+    # scanline. Replace just a 16-pixel band with cubic Hermite interpolation
+    # using values AND slopes outside the band; preserves contours without
+    # blurring/stretching the entire samurai landscape.
+    top, bottom = seam_y - 8, seam_y + 8
+    before0 = menu.crop((0,top-1,1920,top)).tobytes()
+    before1 = menu.crop((0,top,1920,top+1)).tobytes()
+    after0 = menu.crop((0,bottom,1920,bottom+1)).tobytes()
+    after1 = menu.crop((0,bottom+1,1920,bottom+2)).tobytes()
+    span = bottom - top
+    for y in range(top+1, bottom):
+        t = (y-top)/span
+        h00=2*t*t*t-3*t*t+1
+        h10=t*t*t-2*t*t+t
+        h01=-2*t*t*t+3*t*t
+        h11=t*t*t-t*t
+        data=bytearray(len(before1))
+        for i in range(len(data)):
+            a=before1[i]; b=after0[i]
+            slope_a=before1[i]-before0[i]
+            slope_b=after1[i]-after0[i]
+            v=h00*a+h10*span*slope_a+h01*b+h11*span*slope_b
+            data[i]=max(0,min(255,round(v)))
+        menu.paste(Image.frombytes("RGB",(1920,1),bytes(data)),(0,y))
     icon.save(out/"icon0.png",optimize=True)
     menu.save(out/"himura-r11-menu.png",optimize=True)
 
