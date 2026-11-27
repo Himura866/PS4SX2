@@ -1,5 +1,15 @@
 # HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT
 
+## TESTE REAL R13 — ARMAZENAMENTO INTERNO E USB 0 (27/11/2026)
+
+**Teste em console reportado:** no navegador de pastas da R13 experimental, ao selecionar `USB 0` com o HD externo conectado não aparece conteúdo; `USB 1` é listado como desconectado; a opção `Armazenamento interno` também não avança/abre como o usuário espera (detalhe da ação ainda não confirmado). Preservar e não limpar dados do HD, keys, saves nem firmware.
+
+**Leitura de código:** `ci/patch-r13-usb-browser.py` lista SOMENTE subpastas via `R13FolderChoices`, ocultando arquivos de jogos no seletor por projeto; ao entrar numa origem com `source.available==false`, devolve a mesma mensagem genérica `USB desconectado ou pasta inacessivel.` inclusive para a origem interna. `ci/patch-r13-usb-ptbr.py` define a origem interna por `/data/EdenPS4/games` e determina disponibilidade por `CanBrowseDirectory` (`opendir`). Se a pasta não existir ou não puder ser aberta, `source.available` fica falso; isso explica a possibilidade de menu não avançar, mas NÃO prova que seja a causa do hardware. Não confundir ausência de arquivos exibidos no seletor com scanner sem encontrar jogos.
+
+**Próxima correção:** distinguir pasta interna ausente/inacessível, USB não montada, pasta vazia e subpastas encontradas; mostrar caminho/status e ação de selecionar pasta sem travar navegação; verificar criação segura somente da pasta de jogos interna, se realmente ausente, e leitura real de `/mnt/usb0` pelo processo PS4; mostrar progresso do scanner sem copiar jogos grandes; validar no PS4. Esperar relato de comportamento ao apertar X antes de afirmar o defeito exato. Manter também pendências do fundo preto atrás das capas e remover R13 do título visível (mas manter metadados 01.13).
+
+**Estado:** falhas relatadas, hipóteses de código identificadas; correção não implementada nem testada no console.
+
 ## DIAGNÓSTICO VISUAL — FUNDO PRETO ATRÁS DAS CAPAS (27/11/2026)
 
 Usuário confirmou durante o teste da **R13 Experimental** que o fundo preto atrás das capas do Switch permanece visível. **Não pedir novo vídeo como condição**: causa de software encontrada no código.
