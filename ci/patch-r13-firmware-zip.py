@@ -168,9 +168,11 @@ def patch(root):
     count_anchor='const int count = int(sources.size()) + 1;'
     assert u.count(count_anchor)==2, 'source row count has changed'
     u=u.replace(count_anchor,'const int count = int(sources.size()) + 2;')
-    u=once(u,'        const bool add = st.file_row >= int(sources.size());\n',
+    add_anchor='        const bool add = st.file_row >= int(sources.size());\n'
+    assert u.count(add_anchor)==2, 'Files input and renderer both need installer row'
+    u=u.replace(add_anchor,
         '        const bool add = st.file_row == int(sources.size());\n'
-        '        const bool install = st.file_row == int(sources.size()) + 1;\n','input add row')
+        '        const bool install = st.file_row == int(sources.size()) + 1;\n')
     u=once(u,'        if (pressed & Triangle) { say(host.ExportLogs()); host.Play(Sound::Select); }\n'
         '        if (pressed & Cross) {\n            if (add) {\n',
         '        if (pressed & Triangle) { say(host.ExportLogs()); host.Play(Sound::Select); }\n'
@@ -192,9 +194,8 @@ def patch(root):
         '                continue;\n'
         '            }\n'
         '            const Source& source = sources[i];\n','render firmware row')
-    u=once(u,'        const bool add = st.file_row >= int(sources.size());\n',
-        '        const bool add = st.file_row == int(sources.size());\n'
-        '        const bool install = st.file_row == int(sources.size()) + 1;\n','render row state')
+    # Both Files screen paths are updated together above.
+
     u=once(u,'        Footer(x, host, add ? Hints{{"options", "Atualizar"},',
         '        Footer(x, host, install ? Hints{{"circle", "Voltar"}, {"cross", "Instalar ZIP"}} :\n'
         '                      add ? Hints{{"options", "Atualizar"},','render footer')
