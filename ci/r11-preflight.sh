@@ -26,6 +26,7 @@ from urllib.request import urlopen
 root=Path(sys.argv[1])
 sha="fab246cbac93c7995aaf451dca83ae93ba0bd234"
 paths=[
+  "eden/src/yuzu_ps4/CMakeLists.txt",
   "eden/src/yuzu_ps4/ui_launcher.cpp",
   "eden/src/video_core/macro.cpp",
   "eden/src/video_core/vulkan_common/vulkan_device.cpp",
