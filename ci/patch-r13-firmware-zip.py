@@ -5,7 +5,7 @@ Applied AFTER patch-r13-fps-toggle-no-clock; modifies native PS4 launcher and
 CMake; preserves existing user's keys/saves/installed firmware and sources.
 """
 from pathlib import Path
-import sys,shutil
+import sys,shutil,os
 
 def once(s,a,b,label):
     n=s.count(a)
@@ -204,6 +204,9 @@ def patch(root):
         '        if (!st.message.empty()) canvas.Text(st.message, 844, 900, 22, p.accent, Align::Left, 950);',
         'installer status')
 
+    if os.getenv('R13_FW_STOP_AFTER') == 'ui':
+        print('PASS: firmware picker UI anchors confirmed')
+        return
     m=once(m,'#include <memory>\n','#include <memory>\n#include <mutex>\n','mutex include')
     m=once(m,'#include "yuzu_ps4/ui_launcher.h"\n',
         '#include "yuzu_ps4/ui_launcher.h"\n#include "yuzu_ps4/r13_firmware_zip.h"\n','zip import')
@@ -251,6 +254,9 @@ def patch(root):
         '''    ~PsHost() override { if(firmware_thread.joinable())firmware_thread.join(); }
     explicit PsHost(OrbisFrontend::Controller& controller_) : controller{controller_} {
 ''','thread lifecycle')
+    if os.getenv('R13_FW_STOP_AFTER') == 'main':
+        print('PASS: firmware picker UI and main native host anchors confirmed')
+        return
     c=once(c,'add_executable(eden-ps4 main.cpp platform.cpp',
            'add_executable(eden-ps4 main.cpp r13_firmware_zip.cpp platform.cpp',
            'CMake compilation')
