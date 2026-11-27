@@ -200,6 +200,11 @@ def patch(root):
     m=once(m,'#include <memory>\n','#include <memory>\n#include <mutex>\n','mutex include')
     m=once(m,'#include "yuzu_ps4/ui_launcher.h"\n',
         '#include "yuzu_ps4/ui_launcher.h"\n#include "yuzu_ps4/r13_firmware_zip.h"\n','zip import')
+    m=once(m,'    void End() {\n        metadata.Stop();',
+        '    void End() {\n'
+        '        // Never start guest emulation while firmware NAND files are changing.\n'
+        '        if(firmware_thread.joinable())firmware_thread.join();\n'
+        '        metadata.Stop();','join installer before game boot')
     m=once(m,'    std::string ExportLogs() override { return ::ExportLogs(); }',
         '''    bool InstallFirmwareZip(const std::string& path) override {
         if(firmware_busy.load())return false;
