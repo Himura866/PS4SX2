@@ -58,7 +58,7 @@ PY
 echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
- patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
+ patch-r10-boot-trace patch-r11-stability patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
  patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
@@ -95,8 +95,16 @@ grep -Fq '"Nao montado/acessivel: " + source.path' "$BASE/eden/src/yuzu_ps4/ui_l
 grep -Fq 'R13PTCategory(Categories[i].name)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 echo "R13 preflight: PS4 RADV safe-path regression test"
 python3 ci/test-r13-ps4-radv-safe-path.py
-grep -Fq 'R13 PS4 RADV safe-path: disabling indirect count' "$BASE/eden/src/video_core/vulkan_common/vulkan_device.cpp"
-grep -Fq 'Fallback(system, maxwell3d, parameters);' "$BASE/eden/src/video_core/macro.cpp"
+# A/B control: this build deliberately excludes the PS4-specific RADV patch.
+if grep -Fq 'R13 PS4 RADV safe-path: disabling indirect count' "$BASE/eden/src/video_core/vulkan_common/vulkan_device.cpp"; then
+  echo 'ERROR: experimental RADV extension guard leaked into A/B control' >&2
+  exit 41
+fi
+if grep -Fq 'RADV GFX7 on PS4: use the existing individual-draw fallback' "$BASE/eden/src/video_core/macro.cpp"; then
+  echo 'ERROR: experimental RADV macro fallback leaked into A/B control' >&2
+  exit 42
+fi
+echo "PASS: A/B control has no experimental RADV safe-path patch"
 echo "R11 preflight: complete theme/assets and safe metadata"
 test -s "$BASE/branding/icon0.png"
 test -s "$BASE/branding/pic1.png"
