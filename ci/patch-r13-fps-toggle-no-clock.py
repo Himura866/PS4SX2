@@ -66,7 +66,7 @@ def patch_files(root: Path) -> None:
     )
 
     # Validate every edit before touching even one on-disk file.
-    assert m.count('"fps_overlay"') == 3, "unexpected FPS setting wiring"
+    assert m.count('"fps_overlay"') == 2, "unexpected FPS setting wiring"
     assert "r13_fps_overlay_enabled" in d and "r13_fps_overlay_enabled" in p
     assert "canvas.Text(host.Clock()" not in u, "HOME clock still rendered"
     for path, content in zip((main, ui, diagnostics, present), (m, u, d, p)):
