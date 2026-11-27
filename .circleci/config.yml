@@ -236,9 +236,30 @@ jobs:
           command: |
             R13_FW_STOP_AFTER=main R13_PREFLIGHT_STOP_AFTER=patch-r13-firmware-zip bash ci/r11-preflight.sh
 
+  validar_r13_oom_probe:
+    docker:
+      - image: ubuntu:26.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Instalar C++ e Git
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq g++ git openssh-client ca-certificates
+      - checkout
+      - run:
+          name: Testar persistencia de eventos std::bad_alloc
+          command: bash ci/test-r13-memory-oom-probe.sh
+
 workflows:
   compilar_menu_superior_r11:
     jobs:
+      - validar_r13_oom_probe:
+          filters:
+            branches:
+              only:
+                - himura-switch-r13-oom-probe-20261127
       - validar_r13_sintaxe:
           filters:
             branches:
@@ -290,6 +311,7 @@ workflows:
                 - himura-switch-r13-ptbr-usb-20261127
                 - himura-switch-r13-functional-settings-20261127
                 - himura-switch-r13-next-pkg-integration-20261127
+                - himura-switch-r13-oom-probe-20261127
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
