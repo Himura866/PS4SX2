@@ -151,6 +151,7 @@ def patch(root):
         '    virtual std::string FirmwareImportStatus() = 0;\n'
         '    virtual std::string ExportLogs() = 0;', 'Host methods')
 
+    u=once(u,'#include <dirent.h>\n', '#include <dirent.h>\n#include <cctype>\n', 'cctype include')
     u=once(u,'enum class Modal { None, GameInfo, Choice, Power, Keyboard, ConfirmRemove, Order, Test, FolderPicker };',
         'enum class Modal { None, GameInfo, Choice, Power, Keyboard, ConfirmRemove, Order, Test, FolderPicker, FirmwarePicker };','modal type')
     u=once(u,'} // namespace\n\nstruct Launcher::State {',
