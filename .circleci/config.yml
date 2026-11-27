@@ -290,6 +290,7 @@ workflows:
                 - himura-switch-r13-ptbr-usb-20261127
                 - himura-switch-r13-functional-settings-20261127
                 - himura-switch-r13-next-pkg-integration-20261127
+                - himura-switch-r13-silksong-crash-and-brand-20261127
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
