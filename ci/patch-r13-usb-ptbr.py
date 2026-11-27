@@ -234,15 +234,15 @@ def patch_ui(text: str) -> str:
     text = exactly_one(
         text,
         'const Category Categories[] =',
-        'std::string R13PTValue(const std::string& value) {\\n'
-        '    if (value == "On") return "Ligado";\\n'
-        '    if (value == "Off") return "Desligado";\\n'
-        '    if (value == "Docked") return "Modo TV";\\n'
-        '    if (value == "Handheld") return "Modo portatil";\\n'
-        '    if (value == "Basic Black") return "Preto basico";\\n'
-        '    if (value == "Basic White") return "Branco basico";\\n'
-        '    return value;\\n'
-        '}\\n'
+        'std::string R13PTValue(const std::string& value) {\n'
+        '    if (value == "On") return "Ligado";\n'
+        '    if (value == "Off") return "Desligado";\n'
+        '    if (value == "Docked") return "Modo TV";\n'
+        '    if (value == "Handheld") return "Modo portatil";\n'
+        '    if (value == "Basic Black") return "Preto basico";\n'
+        '    if (value == "Basic White") return "Branco basico";\n'
+        '    return value;\n'
+        '}\n'
         'const Category Categories[] =',
         "visible setting option values",
     )
