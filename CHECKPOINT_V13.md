@@ -1,5 +1,16 @@
 # HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT
 
+## REVISÃO MAIS RECENTE — V13 | GPU GFX7 / CRASH (27/11/2026)
+
+**Trabalho código realizado:** branch isolada `himura-switch-v13-ps4-gpu-batch-20261127` @ `f8525d932bebea1178c4719c0e6a00ec3195d7d5`. Adaptado do patch público Orbis-EDEN 0015 para a fonte Eden4 com macro real **`__OPENORBIS__`**, sem modificar o New Eden original: reduz batches de 4096 para 256 desenhos na GPU PS4 e faz flush a partir de 96 uploads; reseta contador por novo contexto Vulkan. Cinco arquivos adaptados com teste preflight. Android e PC seguem com suas políticas anteriores. **HIPÓTESE DE CRASH, NÃO SOLUÇÃO HOMOLOGADA.**
+- Patch: https://github.com/Himura866/PS4SX2/blob/himura-switch-v13-ps4-gpu-batch-20261127/ci/patch-v13-gpu-batch.py
+- Documentação técnica de diagnóstico e testes: https://github.com/Himura866/PS4SX2/blob/himura-switch-v13-ps4-gpu-batch-20261127/docs/V13-GPU-CRASH-TESTE-20261127.md
+- CircleCI desta revisão: https://app.circleci.com/workflow/f2aa990f-ba64-408d-8e89-e8a7f2827426/job/afc7a13d-7334-43d2-9925-a9a85bfc6b61 — validação PENDING na última consulta; ainda não declarar build/PKG aprovado.
+- Meta de teste no PS4: Silksong e Pokémon Legends: Arceus abrirem e executarem gameplay; medir FPS/áudio, verificar retorno ao menu e USB. Se crashar, exportar `/data/EdenPS4/HIMURA_R13_GAME_STATUS.txt`, `eden.log`, `boot-trace.log`, `crash.log`. Não enviar keys/firmware/ROMs.
+- Outras tarefas V13 continuam pendentes e preservadas: imagem do samurai sem botões/capas falsos, fundo até rodapé, carrossel sem placas/tracinhos, importação real de updates/DLC/keys/firmware, português total, splash duplicado, USB detectado no hardware. Compilar apenas CircleCI; manter base funcional inalterada.
+
+**Regra de retomada agora:** conferir PRIMEIRO esta branch de GPU e seu CI, NUNCA compilar a branch de documentação `himura-switch-r13-checkpoint-20261127` como se tivesse código novo. O New Eden 04.89 já funcionou no PS4 do usuário; não se pode atribuir automaticamente a ele patches de outro projeto sem seu código-fonte correspondente.
+
 **NOME CANÔNICO PARA PESQUISA: `HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT`**  
 **ATALHOS DE BUSCA:** `CHECKPOINT V13`, `HIMURA SWITCH V13`, `V01.13`, `R13`.  
 **PROJETO EXATO:** emulador **HIMURA SWITCH para PS4 Pro / GoldHEN**, não HIMURA FIVE (PS5), HIMURA PS2, V15 experimental, nem outros projetos.
@@ -8,12 +19,13 @@
 
 ## Onde está o trabalho verdadeiro
 
-- **Ramificação de implementação em andamento (código):** `Himura866/PS4SX2` — `himura-switch-r13-ptbr-usb-20261127`.
-- **Último commit de código confirmado ao registrar:** `6146f76e07cba9308581e27a98f9f1a7e205b348`.
+- **Ramificação de implementação em andamento (código):** `Himura866/PS4SX2` — **`himura-switch-v13-ps4-gpu-batch-20261127`** (com a base PT-BR/USB preservada em `himura-switch-r13-ptbr-usb-20261127`).
+- **Último commit de código confirmado ao registrar:** **`f8525d932bebea1178c4719c0e6a00ec3195d7d5`**. Aguardar CI e teste real.
 - **Versão do aplicativo/PKG:** `01.13`; título `HIMU00011`. "V13" é o **apelido fácil do checkpoint**, não um novo número técnico inventado.
 - **Branch onde fica este arquivo:** `himura-switch-r13-checkpoint-20261127` (**somente checkpoint**, NÃO compilá-la como se fosse a ramificação mais atual).
 - **Base anterior preservada:** `himura-switch-r13-usb-browser-safe-20261127` @ `f79fa30612a7352c5c9cdeae4da0fad2ddcbea56`.
-- Código: https://github.com/Himura866/PS4SX2/tree/himura-switch-r13-ptbr-usb-20261127
+- Código: https://github.com/Himura866/PS4SX2/tree/himura-switch-v13-ps4-gpu-batch-20261127
+- Base PT-BR/USB preservada: https://github.com/Himura866/PS4SX2/tree/himura-switch-r13-ptbr-usb-20261127
 - Checkpoint detalhado da implementação: https://github.com/Himura866/PS4SX2/blob/himura-switch-r13-ptbr-usb-20261127/docs/CHECKPOINT-HIMURA-SWITCH-R13-20261127-PTBR-USB-IMPLEMENTATION.md
 - Checkpoint visual e vídeo original: https://github.com/Himura866/PS4SX2/blob/himura-switch-r13-checkpoint-20261127/docs/CHECKPOINT-HIMURA-SWITCH-R13-20261127-VIDEO-USB-EDEN.md
 - **Google Drive — este checkpoint canônico, mesmo documento que já continha as melhorias da R13:** https://docs.google.com/document/d/1u-Yn2PMxjPPF9n2w0x7iWG_a-TMw90LXeOiLvX0A-ac/edit?usp=drivesdk
