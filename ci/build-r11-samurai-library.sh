@@ -31,7 +31,6 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r11-authorship.py "$EDEN"\n'
      '  python3 ci/patch-r10-boot-trace.py "$EDEN"\n'
      '  python3 ci/patch-r11-stability.py "$EDEN"\n'
-     '  python3 ci/patch-r13-ps4-radv-safe-path.py "$EDEN"\n'
      '  python3 ci/patch-r13-usb-browser.py "$EDEN"\n'
      '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
      '  python3 ci/patch-r11-home-return.py "$EDEN"\n'
