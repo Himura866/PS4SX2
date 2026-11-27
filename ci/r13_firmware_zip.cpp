@@ -15,6 +15,9 @@
 #include <unistd.h>
 #include <vector>
 #include <zlib.h>
+#ifndef R13_FIRMWARE_DATA_ROOT
+#define R13_FIRMWARE_DATA_ROOT "/data/EdenPS4"
+#endif
 
 namespace HimuraFirmware {
 namespace {
@@ -174,14 +177,14 @@ bool Parse(FILE* f,std::vector<Entry>& entries,std::string& reason){
 }
 std::string InstallZip(const std::string& path,
                        const std::function<void(size_t,size_t)>& progress){
-    if(path.rfind("/mnt/usb",0)!=0 && path.rfind("/data/EdenPS4/",0)!=0)
+    if(path.rfind("/mnt/usb",0)!=0 && path.rfind(R13_FIRMWARE_DATA_ROOT "/",0)!=0)
         return "Origem ZIP nao autorizada";
     FILE* f=fopen(path.c_str(),"rb");
     if(!f)return "Nao foi possivel abrir o firmware ZIP";
     std::vector<Entry> entries; std::string reason;
     bool parsed=Parse(f,entries,reason);
     if(!parsed){fclose(f);return reason;}
-    const std::string pending="/data/EdenPS4/firmware-pending-"+std::to_string(getpid());
+    const std::string pending=R13_FIRMWARE_DATA_ROOT "/firmware-pending-"+std::to_string(getpid());
     if(mkdir(pending.c_str(),0700)!=0){fclose(f);return "Pasta temporaria indisponivel";}
     std::vector<std::string> temporary;
     bool ok=true;
@@ -192,10 +195,10 @@ std::string InstallZip(const std::string& path,
         if(progress)progress(temporary.size(),entries.size());
     }
     fclose(f);
-    const char* nand="/data/EdenPS4/nand";
-    const char* sys="/data/EdenPS4/nand/system";
-    const char* contents="/data/EdenPS4/nand/system/Contents";
-    const char* registered="/data/EdenPS4/nand/system/Contents/registered";
+    const char* nand=R13_FIRMWARE_DATA_ROOT "/nand";
+    const char* sys=R13_FIRMWARE_DATA_ROOT "/nand/system";
+    const char* contents=R13_FIRMWARE_DATA_ROOT "/nand/system/Contents";
+    const char* registered=R13_FIRMWARE_DATA_ROOT "/nand/system/Contents/registered";
     if(ok && !(MkdirIfMissing(nand)&&MkdirIfMissing(sys)&&
                MkdirIfMissing(contents)&&MkdirIfMissing(registered))){
         reason="Pasta NAND nao esta gravavel";ok=false;
