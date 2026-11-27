@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r13-fps-toggle-no-clock.py ci/patch-r13-firmware-zip.py ci/patch-r13-game-library-cleanup.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
+ ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r13-fps-toggle-no-clock.py ci/patch-r13-firmware-zip.py ci/patch-r13-game-library-cleanup.py ci/patch-r13-memory-oom-probe.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
  ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py ci/patch-r12-active-user-videoout.py; do
   python3 -m py_compile "$py"
 done
@@ -37,6 +37,7 @@ paths=[
   "eden/src/yuzu_ps4/ui_canvas.cpp",
   "eden/src/yuzu_ps4/ui_metadata.cpp",
   "eden/src/yuzu_ps4/main.cpp",
+  "eden/src/common/host_memory.cpp",
   "eden/src/common/ps4_diagnostics.h",
   "eden/src/common/stb.h",
   "eden/src/video_core/renderer_vulkan/vk_present_manager.cpp",
@@ -61,7 +62,7 @@ echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
  patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
- patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock patch-r13-firmware-zip patch-r13-game-library-cleanup; do
+ patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock patch-r13-firmware-zip patch-r13-game-library-cleanup patch-r13-memory-oom-probe; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
   if [[ "${R13_PREFLIGHT_STOP_AFTER:-}" == "$patch" ]]; then
@@ -74,6 +75,12 @@ if [[ "${R13_PREFLIGHT_ONLY_APPLY:-0}" == 1 ]]; then
   exit 0
 fi
 
+echo "R13 preflight: OOM recorder compiles and writes a safe snapshot"
+bash ci/test-r13-memory-oom-probe.sh
+grep -Fq 'std::set_new_handler(R13OOMNewHandler)' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'HIMURA_R13_OOM.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'HimuraMemoryProbe::Append' "$BASE/eden/src/common/host_memory.cpp"
+test -s "$BASE/eden/src/yuzu_ps4/r13_memory_failure_probe.h"
 echo "R13 preflight: extract/CRC-test fake firmware ZIP on isolated sandbox"
 bash ci/test-r13-firmware-zip.sh
 echo "R13 preflight: supplement filter and USB hotplug"
