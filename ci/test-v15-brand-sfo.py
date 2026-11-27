@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix="v15-brand-test-") as tmp:
     assert len(updated)==len(original)
     index=b.fields(updated)
     assert b.text_value(updated,index["APP_VER"])=="15.00"
-    assert b.text_value(updated,index["TITLE"])=="HIMURA SWITCH PS4 V15"
+    assert b.text_value(updated,index["TITLE"])==b.TARGET_TITLE
     assert b.text_value(updated,index["TITLE_ID"])==b.EXPECTED_TITLE_ID
     assert b.text_value(updated,index["CONTENT_ID"])==b.EXPECTED_CONTENT_ID
     assert b.text_value(updated,index["VERSION"])=="15.00"
