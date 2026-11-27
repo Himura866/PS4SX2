@@ -24,9 +24,11 @@ with tempfile.TemporaryDirectory() as temp:
     else:
         raise AssertionError("Baseline guard accepted modified executable")
     (stage/"eboot.bin").write_bytes(b"original-working-eboot")
+    (stage/"experimental.gp4").write_text("generated package recipe")
+    assert mod.assert_staged_baseline(report,stage,allow_generated_gp4=True)==2
     (stage/"new-file").write_text("unwanted")
     try:
-        mod.assert_staged_baseline(report,stage)
+        mod.assert_staged_baseline(report,stage,allow_generated_gp4=True)
     except ValueError as exc:
         assert "file list changed" in str(exc)
     else:
