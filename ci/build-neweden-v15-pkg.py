@@ -53,6 +53,8 @@ def assert_staged_baseline(report, stage, allow_generated_gp4=False):
 
 def run(args):
     if not args.allow_experimental: raise ValueError('V15 runtime UI not integrated; explicit --allow-experimental needed')
+    if getattr(args, 'boot_fself_experiment', False) and (not args.baseline_original or args.ptbr_labels_experimental):
+        raise ValueError('Orbis fSELF probe can wrap ONLY the exact 04.89 original in --baseline-original mode')
     image=args.image0.absolute()
     if not image.is_dir(): raise ValueError('Image0 missing')
     if args.out.exists(): raise ValueError('Refusing to overwrite PKG output')
@@ -111,6 +113,31 @@ def run(args):
                 icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
                 icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
             r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
+        # This is an ISOLATED boot-format experiment: OpenOrbis expects a fSELF,
+        # but the owner's PS4 FTP app0 export contains a raw ET_SCE_EXEC_ASLR ELF.
+        # Wrap only the original ELF, preserving all its loadable segment bytes.
+        # Never equate structural fSELF verification to a successful PS4 boot.
+        wrapped_info = None
+        if getattr(args, 'boot_fself_experiment', False):
+            selfspec = importlib.util.spec_from_file_location(
+                'v15_fself_wrapper', Path(__file__).with_name('v15-wrap-orbis-fself.py'))
+            selfmod = importlib.util.module_from_spec(selfspec)
+            selfspec.loader.exec_module(selfmod)
+            original_bytes = (stage/'eboot.bin').read_bytes()
+            wrapped_bytes, wrapped_info = selfmod.wrap(original_bytes, require_original=True)
+            selfmod.validate_wrapper(original_bytes, wrapped_bytes)
+            if wrapped_bytes[:4] != selfmod.SELF_MAGIC or wrapped_info['original_elf_sha256'] != known_good_eboot:
+                raise ValueError('BOOT PROBE STOP: invalid fSELF or original ELF SHA')
+            (stage/'eboot.bin').write_bytes(wrapped_bytes)
+            # Independently verify that the OTHER fourteen app0 files were not altered.
+            allowed = {entry['path'] for entry in report['files']}
+            existing = {p.relative_to(stage).as_posix() for p in stage.rglob('*') if p.is_file()}
+            if existing != allowed:
+                raise ValueError('BOOT PROBE STOP: extra/missing app0 files')
+            for record in report['files']:
+                if record['path'] != 'eboot.bin' and sha(stage/record['path']) != record['sha256']:
+                    raise ValueError('BOOT PROBE STOP: non-eboot app0 changed: '+record['path'])
+            print('BOOT-FSELF-PROBE ' + json.dumps(wrapped_info, sort_keys=True), flush=True)
         # LibOrbisPkg resolves orig_path RELATIVE TO the GP4 location, not cwd.
         # Keep GP4 beside the staged app0 files; exclude it from the explicit file list.
         gp4=stage/'experimental.gp4'
@@ -121,7 +148,8 @@ def run(args):
         validate_gp4_sources(gp4,stage,verified_paths)
         generated=tmp/'packages';generated.mkdir()
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_build',str(gp4),str(generated)],cwd=stage,timeout=1800,check=True)
-        if args.baseline_original: assert_staged_baseline(report,stage,allow_generated_gp4=True)
+        if args.baseline_original and not getattr(args, 'boot_fself_experiment', False):
+            assert_staged_baseline(report,stage,allow_generated_gp4=True)
         candidates=list(generated.glob('*.pkg'))
         if len(candidates)!=1 or candidates[0].stat().st_size<5_000_000: raise ValueError('No PS4 PKG produced')
         with candidates[0].open('rb') as f:
@@ -171,8 +199,10 @@ def run(args):
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
                   'content_id':CONTENT_ID,'size':dest.stat().st_size,
                   'r13_external_icon_sha256':r13_icon_hash,
-                  'packaging_mode':'EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT',
-                  'original_image0_unchanged':bool(args.baseline_original),
+                  'packaging_mode':'ORIGINAL_ORBIS_ELF_FSELF_WRAPPED_BOOT_PROBE' if wrapped_info else ('EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT'),
+                  'original_image0_unchanged':bool(args.baseline_original and not wrapped_info),
+                  'only_original_eboot_container_changed':bool(wrapped_info),
+                  'fself_wrapper_report':wrapped_info,
                   'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
                   'sfo_sha256':branded['branded_sfo_sha256'],
                   'working_base_eboot_sha256':known_good_eboot,
@@ -193,7 +223,8 @@ def main():
     p.add_argument('--image0',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
     p.add_argument('--create-gp4',required=True);p.add_argument('--pkgtool',required=True)
     p.add_argument('--allow-experimental',action='store_true')
-    p.add_argument('--baseline-original',action='store_true',help='Pure 04.89 byte-identical Image0 repack, no SFO/icon/eboot changes')
+    p.add_argument('--baseline-original',action='store_true',help='Original 04.89 SFO, icon and source ELF preserved; defaults to byte-identical Image0')
+    p.add_argument('--boot-fself-experiment',action='store_true',help='Isolated non-installable test: wrap original ET_SCE_EXEC_ASLR as PS4 fSELF before PKG')
     p.add_argument('--ptbr-labels-experimental',action='store_true',help='Only 131 experimental label bytes; NOT full PT-BR or approved install')
     p.add_argument('--r13-icon',required=True,help='REQUIRED: verified R13 WebP external icon; never used as an internal menu background')
     a=p.parse_args()
