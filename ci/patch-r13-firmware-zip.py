@@ -180,6 +180,8 @@ def patch(root):
         '                st.firmware_items.clear();st.firmware_row=0;\n'
         '                st.modal=Modal::FirmwarePicker;st.modal_time=0;host.Play(Sound::Open);\n'
         '            } else if (add) {\n','input start installer')
+    u=once(u,'        if (!add && (pressed & Square)) {',
+        '        if (!add && !install && (pressed & Square)) {','prevent out of bounds when ZIP row selected')
     u=once(u,'            const Source& source = sources[i];\n',
         '            if(i==int(sources.size())+1){\n'
         '                canvas.MaskCentered("folder_small",150,y+39,here?p.accent:p.text,0.8f);\n'
