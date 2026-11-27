@@ -131,9 +131,32 @@ jobs:
           command: |
             bash ci/test-r13-firmware-zip.sh
 
+  validar_r13_aplicacao_patches:
+    docker:
+      - image: ubuntu:26.04
+    resource_class: medium
+    steps:
+      - run:
+          name: Preparar Python e Git
+          command: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq git openssh-client ca-certificates python3 python3-pil
+      - checkout
+      - run:
+          name: Aplicar todos os patches na base Eden4 original sem compilar PS4
+          no_output_timeout: 10m
+          command: |
+            R13_PREFLIGHT_ONLY_APPLY=1 bash ci/r11-preflight.sh
+
 workflows:
   compilar_menu_superior_r11:
     jobs:
+      - validar_r13_aplicacao_patches:
+          filters:
+            branches:
+              only:
+                - himura-switch-r13-next-pkg-integration-20261127
       - validar_r13_zip_firmware:
           filters:
             branches:
