@@ -4,6 +4,11 @@ set -Eeuo pipefail
 root="$(mktemp -d /tmp/r13-firmware-check-XXXXXX)"
 trap 'rm -rf "$root"' EXIT
 mkdir -p "$root/data"
+if ! test -s .r11-smoke/eden4/eden/src/yuzu_ps4/r13_firmware_zip.cpp; then
+  mkdir -p .r11-smoke/eden4/eden/src/yuzu_ps4
+  cp ci/r13_firmware_zip.cpp .r11-smoke/eden4/eden/src/yuzu_ps4/r13_firmware_zip.cpp
+  cp ci/r13_firmware_zip.h .r11-smoke/eden4/eden/src/yuzu_ps4/r13_firmware_zip.h
+fi
 test -s .r11-smoke/eden4/eden/src/yuzu_ps4/r13_firmware_zip.cpp
 g++ -std=c++20 -O2 -Wall -Wextra -Werror \
   -DR13_FIRMWARE_DATA_ROOT="\"$root/data\"" \
