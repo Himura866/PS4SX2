@@ -134,6 +134,7 @@ workflows:
                 - himura-switch-r13-usb-browser-safe-20261127
                 - himura-switch-r13-ptbr-usb-20261127
                 - himura-switch-v13-ps4-gpu-batch-20261127
+                - himura-switch-v13-loading-firmware-audit-20261127
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
