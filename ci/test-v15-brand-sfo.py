@@ -17,7 +17,7 @@ def make_sfo(title_capacity=128):
         ("CONTENT_ID",b.EXPECTED_CONTENT_ID,48),
         ("APP_VER",b.SOURCE_APP_VER,8),
         ("TITLE","New Eden",title_capacity),
-        ("VERSION","01.00",8),
+        ("VERSION",b.SOURCE_APP_VER,8),
     ]
     keybase=20+16*len(items)
     keydata=bytearray()
@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix="v15-brand-test-") as tmp:
     path.write_bytes(original)
     report=b.patch(path,hashlib.sha256(original).hexdigest())
     assert report["app_ver"]=="15.00"
-    assert report["title"]=="HIMURA SWITCH PS4 V15"
+    assert report["title"]=="HIMURA SWITCH"
     assert report["title_id"]==b.EXPECTED_TITLE_ID
     assert report["eboot_modified"] is False
     updated=path.read_bytes()
@@ -60,13 +60,13 @@ with tempfile.TemporaryDirectory(prefix="v15-brand-test-") as tmp:
     assert b.text_value(updated,index["TITLE"])=="HIMURA SWITCH PS4 V15"
     assert b.text_value(updated,index["TITLE_ID"])==b.EXPECTED_TITLE_ID
     assert b.text_value(updated,index["CONTENT_ID"])==b.EXPECTED_CONTENT_ID
-    assert b.text_value(updated,index["VERSION"])=="01.00"
-    print("PASS: V15 title and app version updated without changing IDs or VERSION")
+    assert b.text_value(updated,index["VERSION"])=="15.00"
+    print("PASS: V15 title and app version updated without changing identity fields")
 
-    # Verify only the two permitted value regions and their lengths may differ.
+    # Verify only the three permitted value regions and their lengths may differ.
     allowed=set()
     original_fields=b.fields(original)
-    for key in ("APP_VER","TITLE"):
+    for key in ("APP_VER","VERSION","TITLE"):
         pos,_,_,cap,start=original_fields[key]
         allowed.update(range(pos+4,pos+8))
         allowed.update(range(start,start+cap))
