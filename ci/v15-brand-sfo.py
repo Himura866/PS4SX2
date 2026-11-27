@@ -14,7 +14,7 @@ EXPECTED_TITLE_ID = "EDNP00001"
 EXPECTED_CONTENT_ID = "IV0000-EDNP00001_00-EDENPS4000000000"
 SOURCE_APP_VER = "04.89"
 TARGET_APP_VER = "15.00"
-TARGET_TITLE = "HIMURA SWITCH PS4 V15"
+TARGET_TITLE = "HIMURA SWITCH"
 
 def digest(raw):
     return hashlib.sha256(raw).hexdigest()
@@ -64,11 +64,12 @@ def patch(staged_sfo: Path, original_sha256=ORIGINAL_SFO_SHA256):
     if digest(source) != original_sha256:
         raise ValueError("Unexpected SFO hash: refusing to change another release")
     index = fields(source)
-    for key in ("APP_VER", "TITLE", "TITLE_ID", "CONTENT_ID"):
+    for key in ("APP_VER", "VERSION", "TITLE", "TITLE_ID", "CONTENT_ID"):
         if key not in index:
             raise ValueError("Missing required PS4 SFO field: " + key)
-    if text_value(source,index["APP_VER"]) != SOURCE_APP_VER:
-        raise ValueError("Source APP_VER does not match original 04.89")
+    for key in ("APP_VER", "VERSION"):
+        if text_value(source,index[key]) != SOURCE_APP_VER:
+            raise ValueError("Source "+key+" does not match original 04.89")
     if text_value(source,index["TITLE_ID"]) != EXPECTED_TITLE_ID:
         raise ValueError("TITLE_ID must stay EDNP00001")
     if text_value(source,index["CONTENT_ID"]) != EXPECTED_CONTENT_ID:
@@ -76,7 +77,7 @@ def patch(staged_sfo: Path, original_sha256=ORIGINAL_SFO_SHA256):
     if "New Eden" not in text_value(source,index["TITLE"]):
         raise ValueError("Unexpected source app title; refused to replace")
     output = bytearray(source)
-    for key, value in (("APP_VER", TARGET_APP_VER),("TITLE", TARGET_TITLE)):
+    for key, value in (("APP_VER", TARGET_APP_VER),("VERSION", TARGET_APP_VER),("TITLE", TARGET_TITLE)):
         pos, typ, _, cap, start = index[key]
         if typ != 0x0204:
             raise ValueError("Unsafe SFO string type for " + key)
@@ -88,14 +89,14 @@ def patch(staged_sfo: Path, original_sha256=ORIGINAL_SFO_SHA256):
         struct.pack_into("<I", output, pos+4, len(encoded))
     updated=bytes(output)
     final=fields(updated)
-    for key,expected in (("APP_VER",TARGET_APP_VER),("TITLE",TARGET_TITLE),
+    for key,expected in (("APP_VER",TARGET_APP_VER),("VERSION",TARGET_APP_VER),("TITLE",TARGET_TITLE),
                          ("TITLE_ID",EXPECTED_TITLE_ID),("CONTENT_ID",EXPECTED_CONTENT_ID)):
         if text_value(updated,final[key]) != expected:
             raise ValueError("SFO rebrand verification failed: "+key)
     if len(updated)!=len(source):
         raise ValueError("SFO allocation changed unexpectedly")
     staged_sfo.write_bytes(updated)
-    return {"app_ver": TARGET_APP_VER, "title": TARGET_TITLE,
+    return {"app_ver": TARGET_APP_VER, "version": TARGET_APP_VER, "title": TARGET_TITLE,
             "title_id": EXPECTED_TITLE_ID, "content_id": EXPECTED_CONTENT_ID,
             "source_sfo_sha256": digest(source), "branded_sfo_sha256": digest(updated),
             "eboot_modified": False, "original_sfo_modified": False}
