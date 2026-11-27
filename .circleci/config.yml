@@ -399,6 +399,8 @@ jobs:
             python ci/test-bridge-stage-unmodified-0489.py
             python -m py_compile ci/v15-ps4-boot-format-audit.py ci/test-v15-ps4-boot-format-audit.py
             python ci/test-v15-ps4-boot-format-audit.py
+            python -m py_compile ci/v15-ps4-pkg-metadata-diff.py ci/test-v15-ps4-pkg-metadata-diff.py
+            python ci/test-v15-ps4-pkg-metadata-diff.py
             echo "PONTE R13+0489: PASS = guardas e testes negativos; nenhum PKG foi compilado."
 
 
