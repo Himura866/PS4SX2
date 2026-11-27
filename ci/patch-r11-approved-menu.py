@@ -31,34 +31,8 @@ R11_SKIN_SOURCE=r'''
                 if (!picture.Empty()) {
                     std::fclose(fp);
                     c.DrawImage(picture, 0, 0);
-                    // The approved picture contains MOCK game covers, arrows, dots
-                    // and six printed buttons. Hide those inert example controls;
-                    // the actual PS4 library draws real games, cursor and buttons
-                    // on top of these opaque panels on EVERY interactive frame.
-                    // R13: never paint a full-width black slab over the
-                    // approved samurai / mountain scenery. Mask ONLY the
-                    // five illustrative, non-clickable cover examples.
-                    // Real discovered covers and live focus render above.
-                    c.FillRoundRect(137, 437, 349, 364, 16, {0x090e1b}, 0.98f);
-                    c.FillRoundRect(493, 449, 313, 330, 14, {0x090e1b}, 0.98f);
-                    c.FillRoundRect(816, 449, 319, 330, 14, {0x090e1b}, 0.98f);
-                    c.FillRoundRect(1146, 449, 321, 330, 14, {0x090e1b}, 0.98f);
-                    c.FillRoundRect(1478, 450, 317, 330, 14, {0x090e1b}, 0.98f);
-                    // Cover the static carousel arrows and fake page indicator;
-                    // keyboard/pad navigation and current selection remain live.
-                    c.FillRoundRect(65, 580, 50, 85, 9, {0x090e1b}, 0.95f);
-                    c.FillRoundRect(1816, 580, 58, 85, 9, {0x090e1b}, 0.95f);
-                    c.FillRoundRect(802, 807, 318, 43, 10, {0x090e1b}, 0.96f);
-                    c.FillRoundRect(964, 28, 930, 150, 15, {0x090d19}, 1.0f);
-                    // The approved bitmap was made for R11; cover ONLY its
-                    // baked version badge while keeping the original artwork.
-                    c.FillRoundRect(705, 127, 124, 60, 10, {0xb60d21}, 0.98f);
-                    c.Text("R13", 728, 164, 35, {0xffffff});
-                    // Footer hints are actual LIVE controls, not baked screenshot.
-                    // Opaque footer: never let the printed, non-clickable
-                    // controller legends show through the live PS4 hints.
-                    c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);
-                    c.HLine(0, Canvas::Width, 969, 3, {0xd52236}, 0.85f);
+                    // The verified source is cleaned at package creation; no
+                    // fake screenshot controls and NO black backing panels.
                     c.Text("POD DO HIMURA", 1820, 200, 20, {0xf8dfdf}, Align::Right);
                     return;
                 }
@@ -106,13 +80,10 @@ def patch(root: Path):
         '        canvas.Text("Biblioteca de Jogos", 960, 266, 40, p.title, Align::Center);\n'
         '        canvas.Text("Selecione um jogo para comecar", 960, 315, 26, p.copy, Align::Center);\n',
         '',"avoid double printing fixed title over approved artwork")
-    # Real cards are ALWAYS opaque on the snapshot. Prevent the five fake
-    # decorative example covers in the screenshot from showing as playable games.
-    anchor='            const bool focused = st.zone == Zone::Games && st.game_focus == i;\n'
-    s=once(s,anchor,anchor+
-        '            canvas.FillRoundRect(left - 5, TileTop - 5, TileSize + 10, TileSize + 10,\n'
-        '                                 13, {0x080b16}); // hide illustrative sample covers\n',
-        "overwrite static example game pictures")
+    # The derived PNG no longer contains fake covers: no opaque cards or masks
+    # underneath actual game art; real controller input remains unchanged.
+    if '            const bool focused = st.zone == Zone::Games && st.game_focus == i;\n' not in s:
+        raise RuntimeError("R13: real focus renderer missing")
     # The existing Canvas::Render code retains launch and navigation branches.
     for a in ('R11NeonCover(canvas','case 5: st.modal = Modal::Power;',
               'else start(st.game_focus);'):
