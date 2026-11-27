@@ -1,0 +1,57 @@
+# HIMURA SWITCH PS4 Pro — CHECKPOINT MESTRE DE CONTINUIDADE
+**Data:** 2026-11-27 (Brasil). **Leia este documento PRIMEIRO ao retomar em outro chat.**
+**Repositório:** `Himura866/PS4SX2`. **Não alterar `main`.**
+**Última branch de trabalho:** `himura-switch-r13-oom-probe-20261127`
+**Commit da última atualização de código e checkpoint:** `103a5fd3c5f2080acd5314ed76d90d8046891331` (conteúdo do checkpoint mestre criado depois desse commit; obter HEAD atual da branch antes de novos commits).
+**Branch da revisão anterior com build PKG bem-sucedido:** `himura-switch-r13-next-pkg-integration-20261127`, commit `95a863987a93742c069aac751ba9f65f527af67b`.
+**Estado atual:** build PKG CircleCI da revisão integrada = **SUCCESS**; não houve verificação de artefato/instalação no console nem homologação de jogabilidade. Branch da investigação `std::bad_alloc`: testes **SUCCESS** (preflight + teste isolado); **nenhum PKG adicional compilado nessa branch**.
+
+## Preferências operacionais do proprietário
+- Usar português do Brasil; trabalha via **Samsung Galaxy S10 Plus/Termux** e **PS4 Pro desbloqueado com GoldHEN**, normalmente sem computador.
+- Compilar usando **CircleCI**, não GitHub Actions. Preferir cache, validar antes de gastar build longo (meta <50 minutos, não promessa).
+- Nunca apresentar aplicativo, PKG, botão ou melhoria como funcional/validado apenas por imagem, check estático ou compilação; exigir teste PS4 real.
+- Preservar o New Eden 04.89 original, a R13 instalada, jogos, keys, firmware, saves e updates; nenhum dado protegido/keys/firmware em repositório. Fazer checkpoints após cada mudança com branch, commit, CI, bugs, pendências e links.
+- Nome exibido **HIMURA SWITCH** (sem Eden como nome do aplicativo ou dos diretórios que geramos). Preservar os créditos/licenças legais do código upstream, separadamente. **Não renomear /data/EdenPS4 sem um plano de migração validado**, para não perder dados.
+
+## Evidência real de jogos e falhas
+1. **Hollow Knight: Silksong:** no R13 instalado o menu e a seleção de idioma funcionam, vídeo/cutscene inicial reproduz; ao passar ao gameplay o PS4 mostra erro de tela azul e fecha o app. New Eden 04.89 original tem execução melhor, então comparação A/B controlada é fundamental.
+2. **Pokémon Legends: Arceus:** às vezes passa pela seleção de idioma, mas outras tentativas terminam com crash (usuário relatou código parecido com CE-34878-0; confirmar pela foto/console). Outros títulos leves também têm travamentos.
+3. **Alba: A Wildlife Adventure:** `HIMURA_R13_GAME_STATUS.txt` de um teste mostra guest/GPU inicializados e áudio avançando mesmo quando vídeo estaciona em cerca de 186 quadros por vários intervalos. Esse arquivo específico era de Alba, não Silksong; **não misturar logs**.
+4. **Silksong — logs do arquivo fornecido `switch.zip`:** extraídos no Termux de `/sdcard/Download/TeraBox/switch.zip` em `~/HIMURA-SWITCH/diagnostico`. Conteúdo: `crash.log`, `eden.log`, `HIMURA_R13_GAME_STATUS.txt`. `crash.log` acumulado contém **8 seções `uncaught exception std::bad_alloc` / `signal 6`** sem timestamp por seção; **não é possível ligar todas essas falhas exclusivamente à última execução**. O log do jogo tem ~**6017 frames compostos e flips**, **10194 buffers de áudio**, **310 MiB de heap extra** e ~**76 milhões de callbacks de memória**; último evento por volta de 250,8 segundos. Render GPU teve maior bloco direto livre descendo de **379 MiB a 199 MiB**, e permanecendo em 199 MiB por ~80 segundos: **não prova vazamento contínuo**, nem estabelece que foi uma alocação Vulkan. JIT Dynarmic indicou **480.000 blocos e cinco limpezas de cache**. Sampling profiler estava **ligado (`profile=on`)**; desligá-lo no teste normal pode reduzir overhead, mas **não é uma correção demonstrada para o crash**. `PS4 Pro mode: off` no log merece investigação, não forçar sem saber.
+5. **Diagnóstico atual:** `std::bad_alloc` é evidência de falha de alocação de memória em algum caminho; falta o endereço simbolizado/função responsável, tamanho da requisição e correlação com momento exato. Não atribuir automaticamente à GPU, falta de VRAM ou vazamento.
+
+## Base técnica e checkpoints verificáveis
+- Fonte **Eden4** usada pela R13: `xatyy/Eden4` commit fixo `fab246cbac93c7995aaf451dca83ae93ba0bd234`; patches próprios aplicados na geração do build. **Código-fonte exato do New Eden 04.89 em funcionamento não foi comprovadamente recuperado**; nunca dizer que copiamos o seu eboot original para esta compilação.
+- Original New Eden 04.89 / pacote de comparação preservado em backup privado `Himura866/PS4SX2-V12-Import`, branch `himura-switch-v15-baseline-original`. eboot SHA256 `5defaadbc08c5ba58b62dbe2a006c892dfab9d941f99900b696feff3fe812381`, PKG SHA256 `06e4bc0538b5217ed5c539c12403bd808131e5d50c96315b2840911170939ccd`. Não supor que seja possível reutilizar um executável de pacote comercial sem equivalência de fonte/licenças/dados.
+- **R13 PKG integrado — branch `himura-switch-r13-next-pkg-integration-20261127`, commit `95a8639`:** todos os jobs pré-compilação **SUCESSO** e `compilar_eden4_pkg_r11` = **SUCESSO**, CircleCI:
+  https://app.circleci.com/workflow/bfdf8b8e-e3e7-48a2-b6d5-452bfd99825c/job/fb7e70fb-2216-469d-b158-f7aff3a0388e
+  **Artefato final, SHA e funcionamento no PS4 ainda precisam ser verificados**. Se o usuário testar a R13, confirmar qual build/PKG instalou; não confundir com R13 experimental antiga.
+- O pacote usa Title ID `HIMU00011` e versão `01.13`; **instalar outra build com mesmo Title ID pode substituir a já instalada**. Preservar a versão estável e os dados; nunca remover o New Eden funcional.
+- **Nesta revisão integrada:** patch menu maior sem rodapé preto/retângulos pretos de capas e sem selo R13 decorativo (requer captura real para verificar qualidade); USB com detecção de reconnect e seleção de pastas; firmware ZIP via UI com importador NCA testado em NCAs **fictícios**, ainda sem teste com firmware real no console; esconder NSPs claramente identificados como updates/DLC por nome (não instala updates nem detecta todos pelo conteúdo); FPS de jogos opcional ligado/desligado com persistência e relógio da HOME removido. Mais detalhes em `docs/R13-NEXT-PKG-CHECKPOINT-20261127.md`.
+- **Diagnóstico de `std::bad_alloc` — branch `himura-switch-r13-oom-probe-20261127`:** arquivos `ci/r13_memory_failure_probe.h`, `ci/patch-r13-memory-oom-probe.py`, `ci/test-r13-memory-oom-probe.sh`; grava `/data/EdenPS4/HIMURA_R13_OOM.txt` sem `std::string` no caminho de falha. Registra primeira falha de `operator new` no processo, fase de render, contadores e memória extra; também instrumenta `sceKernelAllocateDirectMemory` e `sceKernelMapDirectMemory` na alocação da RAM guest com código e tamanho. Inclui este arquivo no exportador USB. **Não corrige a alocação; só aumenta a capacidade de localizar a falha.** Limites: outros mecanismos `malloc`/Vulkan/lançamentos manuais de exceção podem não acionar `new_handler`.
+  - Commit de código `6e4c9d5d26754d6ba234df7778fe466198386c45`: job `validar_r13_oom_probe` = **SUCCESS**, job `validar_r11_antes_do_pkg` = **SUCCESS**.
+  - Commit de docs `103a5fd3c5f2080acd5314ed76d90d8046891331`: mesmos dois testes **SUCCESS**, verificados em 27/11.
+  - CI: https://app.circleci.com/workflow/d4382ece-5b6d-4179-8e94-ca713bad95c0/job/f999d476-cc5f-402c-9189-f23a3b4978a0
+  - Documentação detalhada: `docs/R13-OOM-TRACE-CHECKPOINT-20261127.md`.
+- Branch secundária `himura-switch-r13-silksong-crash-and-brand-20261127`: análises `docs/R13-SILKSONG-REAL-ZIP-MEMORY-ANALYSIS-20261127.md` e `docs/R13-ALBA-VIDEO-STALL-LOG-20261127.md`; tentativa de patch de nome/heartbeat teve CI vermelho, **NÃO promover sem corrigir**.
+
+## Lista de pedidos do usuário ainda não homologados
+- **Prioridade máxima:** Silksong, Arceus e jogos leves chegarem a gameplay sem CE-34878-0/crashes; mais rápida inicialização, FPS/áudio estáveis, voltar ao menu e sair sem crash. Comparar com o New Eden original 04.89, preservando versão original.
+- Tela de loading com **barra horizontal moderna e progresso REAL**, sem porcentagem inventada: precisa instrumentar fases e atualizá-la durante o boot sem disputar VideoOut com render.
+- Firmware ZIP: selecionar no USB 0/1, descompactar automaticamente para NAND correta, validar resultado, não sobrescrever saves e keys. Testar no PS4 real.
+- Updates: não mostrá-los como jogos; identificá-los por metadados do pacote/instalar quando funcional, mantendo jogos base visíveis. O filtro atual usa nomes, não é solução completa.
+- UI: arte samurai/paisagem aprovada até a borda inferior (inclusive por trás dos nomes e comandos), sem faixa/preto por trás das capas, sem selo R13, sem relógio do HOME, botões reais do DualShock em PT-BR, covers quadradas com destaque neon e fundo coerente (sem texturas falsas impressas). Verificar com vídeo da TV.
+- Configurações Android/Switch pertinentes somente se funcionais na versão PS4; não exibir botões fictícios. FPS toggle real.
+- Branding: usar somente HIMURA SWITCH no app e diretórios gerados; planos de **migração não-destrutiva** de `/data/EdenPS4` para `/data/HIMURA_SWITCH`, preservando dados e acesso, e avisos de licenças upstream. Não publicar informações pessoais em repo.
+- Entrega: pacotes funcionais, construção preferencialmente <50 min, ZIP de fonte/docs/relatórios/checkpoint; versão de continuidade no Drive quando viável e autorizado, sem inventar upload.
+
+## Próximas ações exatas para o PRÓXIMO CHAT
+1. Abra **este checkpoint** e o commit HEAD de `himura-switch-r13-oom-probe-20261127`; **consulte status CircleCI atual**, não reutilize status antigo.
+2. Confirmar artefatos da **build compilada `95a8639`** no CircleCI (`switch-r11-pkgs`, manifesto/hash e link real). Dizer apenas o que foi realmente verificado, não prometer PKG já instalado.
+3. Preservar a branch compilada. Antes de gerar outro PKG, terminar instrumentação/profiling de memória; se adicionar novas hipóteses, fazer branch isolada com testes de sintaxe/patched-source/preflight completos.
+4. Para crash, recolher de um **build com probe instalado** `HIMURA_R13_OOM.txt` + `crash.log` + `eden.log` + `HIMURA_R13_GAME_STATUS.txt` imediatamente após Silksong; tentar simbolizar stack com ELF correspondente. Só então propor correção de gerenciamento de memória com A/B, sem mudar reservas arbitrariamente.
+5. Um novo chat deve começar com: **“Retome HIMURA SWITCH pelo CHECKPOINT MESTRE de `Himura866/PS4SX2`, branch `himura-switch-r13-oom-probe-20261127`. Confira status, continue de onde parou, nunca sobrescreva a R13 e o New Eden originais.”**
+6. **Não usar o usuário como testador de builds não compilandos ou com validação vermelha**, e não confundir resultado CI com jogabilidade.
+
+## Regra permanente de continuidade
+Após cada alteração: registrar `branch`, `SHA commit`, `CircleCI URL + estado`, mudança realizada vs apenas planejada, resultados comprovados, limitações, arquivos de saída e **primeira próxima ação**. Atualizar este checkpoint, sem substituir fatos por estimativas. Não guardar chaves, firmware, NSPs, saves nem logs completos de usuários em repositório. 
