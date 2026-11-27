@@ -36,7 +36,8 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
      '  python3 ci/patch-r11-home-return.py "$EDEN"\n'
      '  python3 ci/patch-r11-videoout-visibility.py "$EDEN"\n'
-     '  python3 ci/patch-r12-active-user-videoout.py "$EDEN"\n')
+     '  python3 ci/patch-r12-active-user-videoout.py "$EDEN"\n'
+     '  python3 ci/patch-r13-usb-ptbr.py "$EDEN"\n')
 source = source.replace('EDEN_PKG_SUFFIX="-R11"', 'EDEN_PKG_SUFFIX="-R13"')
 source = source.replace("HIMURA_SWITCH_PS4_R11_", "HIMURA_SWITCH_PS4_R13_")
 Path(sys.argv[2]).write_text(source, encoding="utf-8")
@@ -49,6 +50,7 @@ grep -Fq 'local pkg="$PS4_BUILD_ROOT/out/HIMURA SWITCH PS4-01.13-R13.pkg"' "$dst
 grep -Fq 'python3 ci/patch-r11-samurai-library.py "$EDEN"' "$dst"
 grep -Fq 'python3 ci/patch-r10-switch-toolbar.py "$EDEN"' "$dst"
 grep -Fq 'python3 ci/patch-r13-usb-browser.py "$EDEN"' "$dst"
+grep -Fq 'python3 ci/patch-r13-usb-ptbr.py "$EDEN"' "$dst"
 if grep -Fq 'HIMURA SWITCH PS4-01.00-R11.pkg' "$dst"; then
   echo "R11: stale package path detected before compilation" >&2
   exit 9
