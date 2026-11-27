@@ -384,7 +384,31 @@ jobs:
           path: v15-pkg-output
           destination: V15-EXPERIMENTAL-PKG-ONLY-IF-VERIFIED
 
+
+  validar_ponte_r13_neweden_original:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Conferir staging 04.89 sem patch e sem pkg
+          command: |
+            set -euo pipefail
+            python -m py_compile ci/bridge-stage-unmodified-0489.py ci/test-bridge-stage-unmodified-0489.py
+            python ci/test-bridge-stage-unmodified-0489.py
+            echo "PONTE R13+0489: PASS = guardas e testes negativos; nenhum PKG foi compilado."
+
+
 workflows:
+  auditar_ponte_r13_neweden_original:
+    jobs:
+      - validar_ponte_r13_neweden_original:
+          filters:
+            branches:
+              only:
+                - himura-switch-r13-ui-neweden-0489-bridge
+
   auditar_neweden_v15_prepack:
     jobs:
       - auditar_neweden_v15_image0:
