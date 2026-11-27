@@ -171,7 +171,9 @@ def patch(root):
     u=once(u,'        const bool add = st.file_row >= int(sources.size());\n',
         '        const bool add = st.file_row == int(sources.size());\n'
         '        const bool install = st.file_row == int(sources.size()) + 1;\n','input add row')
-    u=once(u,'        if (pressed & Cross) {\n            if (add) {\n',
+    u=once(u,'        if (pressed & Triangle) { say(host.ExportLogs()); host.Play(Sound::Select); }\n'
+        '        if (pressed & Cross) {\n            if (add) {\n',
+        '        if (pressed & Triangle) { say(host.ExportLogs()); host.Play(Sound::Select); }\n'
         '        if (pressed & Cross) {\n'
         '            if (install) {\n'
         '                st.firmware_root.clear();st.firmware_path.clear();\n'
