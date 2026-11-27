@@ -39,9 +39,11 @@ def validate_gp4_sources(gp4, stage, expected_paths):
             raise ValueError("GP4 orig_path does not resolve to verified image file: "+target)
     return len(entries)
 
-def assert_staged_baseline(report, stage):
+def assert_staged_baseline(report, stage, allow_generated_gp4=False):
     expected={entry['path']:entry['sha256'] for entry in report['files']}
     actual={p.relative_to(stage).as_posix() for p in stage.rglob('*') if p.is_file()}
+    if allow_generated_gp4:
+        actual.discard('experimental.gp4')  # expected build recipe, not an app0 file
     if set(expected)!=actual:
         raise ValueError('Baseline staging file list changed')
     for name,digest in expected.items():
@@ -119,7 +121,7 @@ def run(args):
         validate_gp4_sources(gp4,stage,verified_paths)
         generated=tmp/'packages';generated.mkdir()
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_build',str(gp4),str(generated)],cwd=stage,timeout=1800,check=True)
-        if args.baseline_original: assert_staged_baseline(report,stage)
+        if args.baseline_original: assert_staged_baseline(report,stage,allow_generated_gp4=True)
         candidates=list(generated.glob('*.pkg'))
         if len(candidates)!=1 or candidates[0].stat().st_size<5_000_000: raise ValueError('No PS4 PKG produced')
         with candidates[0].open('rb') as f:
