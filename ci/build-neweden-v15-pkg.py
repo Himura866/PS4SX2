@@ -51,6 +51,19 @@ def assert_staged_baseline(report, stage, allow_generated_gp4=False):
             raise ValueError('Baseline staging hash mismatch: '+name)
     return len(expected)
 
+def install_approved_r13_icon(stage, icon_path):
+    """Use the approved external Samurai cover, never as the in-app wallpaper."""
+    from PIL import Image, ImageOps
+    icon_src = Path(icon_path).resolve(strict=True)
+    approved_sha = 'ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
+    if sha(icon_src) != approved_sha:
+        raise ValueError('R13 approved external icon source hash mismatch')
+    with Image.open(icon_src) as src:
+        image = ImageOps.fit(src.convert('RGB'), (512, 512),
+                             getattr(Image, 'Resampling', Image).LANCZOS)
+        image.save(stage/'sce_sys'/'icon0.png', format='PNG', optimize=True)
+    return sha(stage/'sce_sys'/'icon0.png')
+
 def run(args):
     if not args.allow_experimental: raise ValueError('V15 runtime UI not integrated; explicit --allow-experimental needed')
     if getattr(args, 'boot_fself_experiment', False) and (not args.baseline_original or args.ptbr_labels_experimental):
@@ -107,14 +120,7 @@ def run(args):
             branded=branded_mod.patch(stage/'sce_sys'/'param.sfo')
             # Preserve the exact R13 external PS4 cover; NOT an internal UI asset.
             # A R13 external PS4 icon is mandatory for this experiment; the menu art is separate.
-            from PIL import Image, ImageOps
-            icon_src=Path(args.r13_icon).resolve(strict=True)
-            approved_sha='ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
-            if sha(icon_src)!=approved_sha: raise ValueError('R13 external icon source hash mismatch')
-            with Image.open(icon_src) as src:
-                icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
-                icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
-            r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
+            r13_icon_hash=install_approved_r13_icon(stage,args.r13_icon)
         # Isolated test identity (HIMU00015) to avoid replacing installed EDNP00001.
         # Runtime files under /data/eden-ps4 may still be shared: NO claim of save
         # isolation, and no user install recommendation without console safeguards.
@@ -133,6 +139,10 @@ def run(args):
                              'runtime_data_isolated':False}
             branded = {'title':clone_mod.TITLE, 'app_ver':clone_mod.APP_VER,
                        'branded_sfo_sha256':parallel_meta['sfo_sha256']}
+        # A parallel V15 label must also use the approved external Samurai tile.
+        # Previous baseline-original runs silently retained the old New Eden icon.
+        if parallel_meta and args.baseline_original:
+            r13_icon_hash=install_approved_r13_icon(stage,args.r13_icon)
         active_content_id = parallel_meta['content_id'] if parallel_meta else CONTENT_ID
         # This is an ISOLATED boot-format experiment: OpenOrbis expects a fSELF,
         # but the owner's PS4 FTP app0 export contains a raw ET_SCE_EXEC_ASLR ELF.
@@ -156,7 +166,7 @@ def run(args):
             if existing != allowed:
                 raise ValueError('BOOT PROBE STOP: extra/missing app0 files')
             for record in report['files']:
-                if record['path'] not in ({'eboot.bin', 'sce_sys/param.sfo'} if parallel_meta else {'eboot.bin'}) and sha(stage/record['path']) != record['sha256']:
+                if record['path'] not in ({'eboot.bin', 'sce_sys/param.sfo', 'sce_sys/icon0.png'} if parallel_meta else {'eboot.bin'}) and sha(stage/record['path']) != record['sha256']:
                     raise ValueError('BOOT PROBE STOP: non-eboot app0 changed: '+record['path'])
             print('BOOT-FSELF-PROBE ' + json.dumps(wrapped_info, sort_keys=True), flush=True)
         # LibOrbisPkg resolves orig_path RELATIVE TO the GP4 location, not cwd.
@@ -206,6 +216,10 @@ def run(args):
         for key in loader_expected:
             source, field = key.split('.', 1)
             loader_actual[key] = loader_meta['header' if source == 'pkg' else 'sfo'].get(field)
+        # Protect against a green V15 artifact containing the wrong PS4 cover.
+        if parallel_meta:
+            if not r13_icon_hash or loader_meta['icon_sha256'] != r13_icon_hash:
+                raise ValueError('BOOT/ART SAFETY STOP: approved R13 external icon not embedded in PKG')
         loader_differences = {
             key: {'original': expected, 'rebuilt': loader_actual[key]}
             for key, expected in loader_expected.items()
@@ -236,6 +250,8 @@ def run(args):
                   'candidate_pkg_sfo_fields':loader_meta['sfo'],
                   'candidate_pkg_embedded_sfo_sha256':loader_meta['sfo_sha256'],
                   'candidate_pkg_embedded_icon_sha256':loader_meta['icon_sha256'],
+                  'approved_r13_external_icon_matches_embedded':bool(
+                      r13_icon_hash and loader_meta['icon_sha256']==r13_icon_hash),
                   'loader_metadata_matches_original_0489':not bool(loader_differences),
                   'loader_metadata_differences':loader_differences}
         (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
