@@ -90,8 +90,51 @@ def patch_main(text: str) -> str:
         '"USB inacessivel. Registros mantidos em /data/EdenPS4/"',
         "USB export error",
     )
+    for old, new in MAIN_LITERALS.items():
+        text = optional_literal(text, old, new)
     return text
 
+
+
+MAIN_LITERALS = {
+    '"Version"': '"Versao"',
+    '"Console mode"': '"Modo do console"',
+    '"PS4 Pro mode"': '"Modo PS4 Pro"',
+    '"PS4 (base mode)"': '"PS4 (modo base)"',
+    '"Memory for games"': '"Memoria para jogos"',
+    '"Current user"': '"Usuario atual"',
+    '"Data folder"': '"Pasta de dados"',
+    '"Sampling profiler"': '"Analise de desempenho"',
+    '"Writes where CPU time goes to eden.log every 10 s. Costs a little speed."':
+        '"Registra o uso da CPU em eden.log a cada 10 s; pode reduzir o desempenho."',
+    '"Renderer"': '"Renderizador"',
+    '"Null draws nothing (CPU-only test)."': '"Nulo nao desenha imagens (teste somente de CPU)."',
+    '"JIT inline memory"': '"Memoria inline JIT"',
+    '"JIT direct page table"': '"Tabela de paginas direta JIT"',
+    '"JIT page reuse"': '"Reutilizacao de paginas JIT"',
+    '"JIT register tweaks"': '"Otimizacoes dos registradores JIT"',
+    '"Diagnostics: Off sends every guest memory access through a slow callback."':
+        '"Diagnostico: desativar torna o acesso a memoria mais lento."',
+    '"Diagnostics: Off decodes packed page table entries instead."':
+        '"Diagnostico: desativar usa a decodificacao da tabela de paginas."',
+    '"Diagnostics: Off looks up the page table for every access."':
+        '"Diagnostico: desativar pesquisa a tabela de paginas a cada acesso."',
+    '"Diagnostics: Off uses Dynarmic\'s original register allocation."':
+        '"Diagnostico: desativar usa a alocacao original de registradores Dynarmic."',
+    '"Theme"': '"Tema"',
+    '"Menu sounds"': '"Sons do menu"',
+    '"Sounds when you move around the HOME menu. Games are not affected."':
+        '"Sons ao navegar no menu principal. Os jogos nao sao afetados."',
+    '"Video output"': '"Saida de video"',
+    '"Resolution sent to the TV. 1080p uses ~13 MiB more GPU memory; pair it with Docked."':
+        '"Resolucao da TV. 1080p consome aproximadamente 13 MiB adicionais da GPU."',
+    '"Player 1 controller"': '"Controle do jogador 1"',
+    '"Player 2 controller"': '"Controle do jogador 2"',
+    '"Player 3 controller"': '"Controle do jogador 3"',
+    '"Player 4 controller"': '"Controle do jogador 4"',
+    '"The Switch controller this PS4 controller acts as."':
+        '"Tipo de controle Switch emulado pelo controle do PS4."',
+}
 
 UI_LITERALS = {
     '"About"': '"Sobre"',
@@ -188,6 +231,32 @@ def patch_ui(text: str) -> str:
         'const Category Categories[] =',
         "settings category labels",
     )
+    text = exactly_one(
+        text,
+        'const Category Categories[] =',
+        'std::string R13PTValue(const std::string& value) {\\n'
+        '    if (value == "On") return "Ligado";\\n'
+        '    if (value == "Off") return "Desligado";\\n'
+        '    if (value == "Docked") return "Modo TV";\\n'
+        '    if (value == "Handheld") return "Modo portatil";\\n'
+        '    if (value == "Basic Black") return "Preto basico";\\n'
+        '    if (value == "Basic White") return "Branco basico";\\n'
+        '    return value;\\n'
+        '}\\n'
+        'const Category Categories[] =',
+        "visible setting option values",
+    )
+    text = exactly_one(
+        text, 'rows.push_back({option.label, value, IsOn(value), {}, index});',
+        'rows.push_back({option.label, R13PTValue(value), IsOn(value), {}, index});',
+        "settings row values",
+    )
+    text = exactly_one(
+        text, 'canvas.Text(option.values[i], 632,',
+        'canvas.Text(R13PTValue(option.values[i]), 632,',
+        "choices in PT-BR",
+    )
+
     text = exactly_one(
         text, 'canvas.Text(Categories[i].name, 188,',
         'canvas.Text(R13PTCategory(Categories[i].name), 188,',
