@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r13-fps-toggle-no-clock.py ci/patch-r13-firmware-zip.py ci/patch-r13-game-library-cleanup.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
+ ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r13-fps-toggle-no-clock.py ci/patch-r13-firmware-zip.py ci/patch-r13-game-library-cleanup.py ci/patch-r13-gameplay-trace-brand.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
  ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py ci/patch-r12-active-user-videoout.py; do
   python3 -m py_compile "$py"
 done
@@ -61,7 +61,7 @@ echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
  patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
- patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock patch-r13-firmware-zip patch-r13-game-library-cleanup; do
+ patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock patch-r13-firmware-zip patch-r13-game-library-cleanup patch-r13-gameplay-trace-brand; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
   if [[ "${R13_PREFLIGHT_STOP_AFTER:-}" == "$patch" ]]; then
@@ -74,6 +74,13 @@ if [[ "${R13_PREFLIGHT_ONLY_APPLY:-0}" == 1 ]]; then
   exit 0
 fi
 
+echo "R13 preflight: post-intro crash reports and user-facing branding"
+grep -Fq 'R11GameCheckpoint("andamento do jogo (2 s)", r13_state);' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'fase=%s callbacks=%llu' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'HIMURA-SWITCH-' "$BASE/eden/src/yuzu_ps4/main.cpp"
+if grep -Fq '"/EdenPS4-" + name;' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
+ echo 'ERROR: old exported filename still visible' >&2; exit 61
+fi
 echo "R13 preflight: extract/CRC-test fake firmware ZIP on isolated sandbox"
 bash ci/test-r13-firmware-zip.sh
 echo "R13 preflight: supplement filter and USB hotplug"
@@ -229,7 +236,7 @@ fi
 # It is not enough for the Python patch itself to mention these features.
 grep -Fq 'HIMURA_R13_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq '"crash.log", "samples.log", "HIMURA_R13_GAME_STATUS.txt"' "$BASE/eden/src/yuzu_ps4/main.cpp"
-grep -Fq 'andamento do jogo (10 s)' "$BASE/eden/src/yuzu_ps4/main.cpp"
+grep -Fq 'andamento do jogo (2 s)' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'quadros_compostos=%llu video=%llu audio=%llu memoria_extra_mib=%llu' "$BASE/eden/src/yuzu_ps4/main.cpp"
 if grep -Fq 'HIMURA_R11_GAME_STATUS.txt' "$BASE/eden/src/yuzu_ps4/main.cpp"; then
     echo 'R13 preflight ERROR: outdated crash checkpoint file path' >&2
