@@ -120,8 +120,6 @@ UI_LITERALS = {
     '"Not connected"': '"Nao conectado: verifique a montagem USB"',
     '" game - "': '" jogo - "',
     '" games - "': '" jogos - "',
-    '"On"': '"Ativo"',
-    '"Off"': '"Desativado"',
     '"Looking for software..."': '"Procurando jogos..."',
     '"Folder removed."': '"Pasta removida."',
     '" is on."': '" ativado."',
@@ -197,6 +195,11 @@ def patch_ui(text: str) -> str:
     )
     for old, new in UI_LITERALS.items():
         text = optional_literal(text, old, new)
+    # Keep the internal On/Off setting values unchanged; translate only the USB label.
+    text = exactly_one(text,
+        'canvas.Text(source.enabled ? "On" : "Off",',
+        'canvas.Text(source.enabled ? "Ativo" : "Desativado",',
+        "source toggle label")
 
     text = exactly_one(
         text,
