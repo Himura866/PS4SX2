@@ -142,7 +142,9 @@ def patch(root):
     hdr=root/"eden/src/yuzu_ps4/ui_launcher.h"
     main=root/"eden/src/yuzu_ps4/main.cpp"
     cmake=root/"eden/src/yuzu_ps4/CMakeLists.txt"
+    preview=root/"eden/ps4/ui-preview/preview.cpp"
     u=ui.read_text();h=hdr.read_text();m=main.read_text();c=cmake.read_text()
+    v=preview.read_text()
 
     h=once(h,'    virtual std::string ExportLogs() = 0;',
         '    virtual bool InstallFirmwareZip(const std::string& path) = 0;\n'
@@ -239,12 +241,17 @@ def patch(root):
     c=once(c,'add_executable(eden-ps4 main.cpp platform.cpp',
            'add_executable(eden-ps4 main.cpp r13_firmware_zip.cpp platform.cpp',
            'CMake compilation')
+    v=once(v,'    std::string ExportLogs() override { return "Logs copied to USB."; }',
+        '    bool InstallFirmwareZip(const std::string&) override { return false; }\n'
+        '    std::string FirmwareImportStatus() override { return "Firmware ZIP so existe no PS4"; }\n'
+        '    std::string ExportLogs() override { return "Logs copied to USB."; }','preview Host implementation')
     # Stage exact source under the Eden4 checkout, no network or runtime libraries.
     package=Path(__file__).resolve().parent
     dst=root/"eden/src/yuzu_ps4"
     shutil.copyfile(package/"r13_firmware_zip.cpp",dst/"r13_firmware_zip.cpp")
     shutil.copyfile(package/"r13_firmware_zip.h",dst/"r13_firmware_zip.h")
     ui.write_text(u);hdr.write_text(h);main.write_text(m);cmake.write_text(c)
+    preview.write_text(v)
     print('R13 firmware ZIP picker integrated with native PS4 UI and zlib importer')
 
 if __name__=="__main__":
