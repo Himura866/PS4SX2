@@ -44,6 +44,11 @@ def patch(root: Path):
     s=once(s,'int main() {\n    mkdir("/data/EdenPS4", 0777);',
        'int main() {\n    mkdir("/data/EdenPS4", 0777);\n'
        '    std::set_new_handler(R13OOMNewHandler);', 'install handler at boot')
+    # Export the snapshot with the existing Triangle > USB reports command.
+    s=once(s,
+       '"crash.log", "samples.log", "HIMURA_R13_GAME_STATUS.txt"};',
+       '"crash.log", "samples.log", "HIMURA_R13_GAME_STATUS.txt", "HIMURA_R13_OOM.txt"};',
+       'USB diagnostics includes OOM report')
     # Guest direct memory can fail without invoking operator new. Capture the
     # requested size and kernel code before throwing the pre-existing bad_alloc.
     h=once(h,'#include "common/host_memory.h"\n',
