@@ -33,11 +33,35 @@ def main():
     menu=verified(ASSETS/"r11-approved-menu.webp", MENU_SHA)
     icon=ImageOps.fit(icon,(512,512),Image.Resampling.LANCZOS)
     menu=ImageOps.fit(menu,(1920,1080),Image.Resampling.LANCZOS)
-    # R13 user-tested artwork: original screenshot has six inert controller
-    # hints baked into its lower strip. Remove those printed glyphs from the
-    # runtime PNG so only the real PS4 launcher draws actionable controls.
-    # Keep the samurai, scenery, covers and red separator above this strip.
-    ImageDraw.Draw(menu).rectangle((0, 992, 1919, 1079), fill=(7, 9, 17))
+    # Derived artwork ONLY. Preserve the SHA-verified source WebP; clean the
+    # baked screenshot controls/covers/version from the generated PNG. Use
+    # edge-colour interpolation to avoid opaque black masking in the launcher.
+    def remove_mock(box, feather=10):
+        nonlocal menu
+        x0,y0,x1,y1=box
+        w,h=x1-x0,y1-y0
+        top=menu.crop((x0,y0-1,x1,y0))
+        bottom=menu.crop((x0,y1,x1,y1+1))
+        fill=Image.new("RGB",(w,h))
+        for y in range(h):
+            row=Image.blend(top,bottom,(y+1)/(h+1))
+            fill.paste(row,(0,y))
+        proposal=menu.copy()
+        proposal.paste(fill,(x0,y0))
+        mask=Image.new("L",menu.size)
+        ImageDraw.Draw(mask).rectangle((x0,y0,x1,y1),fill=255)
+        mask=mask.filter(ImageFilter.GaussianBlur(feather))
+        menu=Image.composite(proposal,menu,mask)
+    for box in ((126,427,495,808),(482,439,817,798),
+                (807,440,1143,801),(1136,440,1476,798),
+                (1467,439,1810,799),(54,571,123,679),
+                (1806,570,1885,681),(788,793,1135,859),
+                (696,117,838,197)):
+        remove_mock(box)
+    # Continue the actual lower landscape to 1080p with a mirror extension;
+    # this starts at the last scenery row and avoids a solid black footer.
+    footer=ImageOps.flip(menu.crop((0,860,1920,970)))
+    menu.paste(footer,(0,970))
     icon.save(out/"icon0.png",optimize=True)
     menu.save(out/"himura-r11-menu.png",optimize=True)
 
