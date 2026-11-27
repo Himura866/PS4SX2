@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
+ ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
  ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py ci/patch-r12-active-user-videoout.py; do
   python3 -m py_compile "$py"
 done
@@ -58,12 +58,32 @@ PY
 echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
- patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r11-approved-menu patch-r11-home-return \
+ patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
  patch-r11-videoout-visibility patch-r12-active-user-videoout; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
 
+echo "R13 preflight: verify controller USB browser and non-destructive index"
+python3 - "$BASE" <<'PY'
+from pathlib import Path
+import sys
+root=Path(sys.argv[1])/"eden/src/yuzu_ps4"
+ui=(root/"ui_launcher.cpp").read_text()
+main=(root/"main.cpp").read_text()
+assert "Modal::FolderPicker" in ui
+assert 'st.keyboard_text = "/mnt/usb0/";' not in ui
+assert 'st.modal = Modal::FolderPicker;' in ui
+assert 'std::vector<std::string> R13FolderChoices' in ui
+assert 'Selecionar esta pasta' in ui
+assert 'host.AddSource(st.picker_path)' in ui
+assert 'ScanFolder(source.path, 4, source.name, games, remaining_dirs);' in main
+assert 'size_t remaining_dirs = 4096;' in main
+assert 'if (lstat(path.c_str(), &status) != 0) continue;' in main
+assert 'FILE* output = fopen' in main  # existing USB logs only; scanner is read-only
+assert "bool AddSource(const std::string& path) override" in main
+print("PASS: Add Folder opens controller picker; games indexed recursively without USB copy")
+PY
 echo "R13 preflight: PS4 RADV safe-path regression test"
 python3 ci/test-r13-ps4-radv-safe-path.py
 grep -Fq 'R13 PS4 RADV safe-path: disabling indirect count' "$BASE/eden/src/video_core/vulkan_common/vulkan_device.cpp"
@@ -210,7 +230,7 @@ grep -Fq 'HIMURA SWITCH PS4-01.13-R13.pkg' ci/.r11-build-generated.sh
 grep -Fq 'stage 09_eden_pkg build_pkg' ci/.r11-build-generated.sh
 for patch in patch-r11-samurai-library patch-r11-theme-cache patch-r11-autocovers patch-r11-fps \
  generate-r11-branding patch-r11-authorship patch-r11-stability patch-r13-ps4-radv-safe-path patch-r11-approved-menu \
- patch-r11-home-return patch-r11-videoout-visibility patch-r12-active-user-videoout; do
+ patch-r11-home-return patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-browser; do
  grep -Fq "ci/$patch.py" ci/.r11-build-generated.sh
 done
 echo "R11 PREFLIGHT PASSED: code transformations and PKG recipe checked."
