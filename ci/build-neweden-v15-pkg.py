@@ -39,6 +39,16 @@ def validate_gp4_sources(gp4, stage, expected_paths):
             raise ValueError("GP4 orig_path does not resolve to verified image file: "+target)
     return len(entries)
 
+def assert_staged_baseline(report, stage):
+    expected={entry['path']:entry['sha256'] for entry in report['files']}
+    actual={p.relative_to(stage).as_posix() for p in stage.rglob('*') if p.is_file()}
+    if set(expected)!=actual:
+        raise ValueError('Baseline staging file list changed')
+    for name,digest in expected.items():
+        if sha(stage/name)!=digest:
+            raise ValueError('Baseline staging hash mismatch: '+name)
+    return len(expected)
+
 def run(args):
     if not args.allow_experimental: raise ValueError('V15 runtime UI not integrated; explicit --allow-experimental needed')
     image=args.image0.absolute()
@@ -74,22 +84,31 @@ def run(args):
             if sha(stage/'eboot.bin') != label_mod.PATCHED_SHA256:
                 raise ValueError('PT-BR label patch final hash mismatch')
 
-        # Rebrand visible title/version ONLY after verifying the original SFO,
-        # never the installed app, PS4 title ID, data directory or eboot.
-        branded_spec=importlib.util.spec_from_file_location('sfo_brand',Path(__file__).with_name('v15-brand-sfo.py'))
-        branded_mod=importlib.util.module_from_spec(branded_spec)
-        branded_spec.loader.exec_module(branded_mod)
-        branded=branded_mod.patch(stage/'sce_sys'/'param.sfo')
-        # Preserve the exact R13 external PS4 cover; NOT an internal UI asset.
-        # A R13 external PS4 icon is mandatory for this experiment; the menu art is separate.
-        from PIL import Image, ImageOps
-        icon_src=Path(args.r13_icon).resolve(strict=True)
-        approved_sha='ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
-        if sha(icon_src)!=approved_sha: raise ValueError('R13 external icon source hash mismatch')
-        with Image.open(icon_src) as src:
-            icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
-            icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
-        r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
+        # Unmodified 04.89 baseline: keep original executable, SFO and icon.
+        if args.baseline_original:
+            if args.ptbr_labels_experimental:
+                raise ValueError('Baseline cannot apply an eboot text patch')
+            assert_staged_baseline(report,stage)
+            branded={'title':report['sfo']['TITLE'], 'app_ver':report['sfo']['APP_VER'],
+                     'branded_sfo_sha256':sha(stage/'sce_sys'/'param.sfo')}
+            r13_icon_hash=None
+        else:
+            # Rebrand visible title/version ONLY after verifying the original SFO,
+            # never the installed app, PS4 title ID, data directory or eboot.
+            branded_spec=importlib.util.spec_from_file_location('sfo_brand',Path(__file__).with_name('v15-brand-sfo.py'))
+            branded_mod=importlib.util.module_from_spec(branded_spec)
+            branded_spec.loader.exec_module(branded_mod)
+            branded=branded_mod.patch(stage/'sce_sys'/'param.sfo')
+            # Preserve the exact R13 external PS4 cover; NOT an internal UI asset.
+            # A R13 external PS4 icon is mandatory for this experiment; the menu art is separate.
+            from PIL import Image, ImageOps
+            icon_src=Path(args.r13_icon).resolve(strict=True)
+            approved_sha='ec00188208f4a949d492b2ce665a4a52626206ea9c728d771f1dc3510b27a778'
+            if sha(icon_src)!=approved_sha: raise ValueError('R13 external icon source hash mismatch')
+            with Image.open(icon_src) as src:
+                icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
+                icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
+            r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
         # LibOrbisPkg resolves orig_path RELATIVE TO the GP4 location, not cwd.
         # Keep GP4 beside the staged app0 files; exclude it from the explicit file list.
         gp4=stage/'experimental.gp4'
@@ -100,6 +119,7 @@ def run(args):
         validate_gp4_sources(gp4,stage,verified_paths)
         generated=tmp/'packages';generated.mkdir()
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_build',str(gp4),str(generated)],cwd=stage,timeout=1800,check=True)
+        if args.baseline_original: assert_staged_baseline(report,stage)
         candidates=list(generated.glob('*.pkg'))
         if len(candidates)!=1 or candidates[0].stat().st_size<5_000_000: raise ValueError('No PS4 PKG produced')
         with candidates[0].open('rb') as f:
@@ -112,6 +132,8 @@ def run(args):
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
                   'content_id':CONTENT_ID,'size':dest.stat().st_size,
                   'r13_external_icon_sha256':r13_icon_hash,
+                  'packaging_mode':'EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT',
+                  'original_image0_unchanged':bool(args.baseline_original),
                   'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
                   'sfo_sha256':branded['branded_sfo_sha256'],
                   'working_base_eboot_sha256':known_good_eboot,
@@ -126,6 +148,7 @@ def main():
     p.add_argument('--image0',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
     p.add_argument('--create-gp4',required=True);p.add_argument('--pkgtool',required=True)
     p.add_argument('--allow-experimental',action='store_true')
+    p.add_argument('--baseline-original',action='store_true',help='Pure 04.89 byte-identical Image0 repack, no SFO/icon/eboot changes')
     p.add_argument('--ptbr-labels-experimental',action='store_true',help='Only 131 experimental label bytes; NOT full PT-BR or approved install')
     p.add_argument('--r13-icon',required=True,help='REQUIRED: verified R13 WebP external icon; never used as an internal menu background')
     a=p.parse_args()
