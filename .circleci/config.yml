@@ -19,6 +19,7 @@ jobs:
           command: |
             python3 -m py_compile ci/patch-r11-samurai-library.py
             python3 -m py_compile ci/patch-r13-usb-browser.py
+            python3 -m py_compile ci/patch-r13-usb-ptbr.py
             python3 - \<<'PY'
             from pathlib import Path
             s = Path("ci/patch-r11-samurai-library.py").read_text()
@@ -56,6 +57,7 @@ jobs:
             python3 -m py_compile ci/patch-r10-switch-toolbar.py
             python3 -m py_compile ci/patch-r11-samurai-library.py
             python3 -m py_compile ci/patch-r13-usb-browser.py
+            python3 -m py_compile ci/patch-r13-usb-ptbr.py
             python3 -m py_compile ci/patch-r11-theme-cache.py
             python3 -m py_compile ci/patch-r11-autocovers.py
             python3 -m py_compile ci/patch-r11-fps.py
@@ -128,6 +130,7 @@ workflows:
                 - himura-switch-r13-stability-staging
                 - himura-switch-r13-ps4-radv-safe-probe
                 - himura-switch-r13-usb-browser-safe-20261127
+                - himura-switch-r13-ptbr-usb-20261127
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
@@ -141,3 +144,4 @@ workflows:
                 - himura-switch-r13-stability-staging
                 - himura-switch-r13-ps4-radv-safe-probe
                 - himura-switch-r13-usb-browser-safe-20261127
+                - himura-switch-r13-ptbr-usb-20261127
