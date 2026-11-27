@@ -401,6 +401,8 @@ jobs:
             python ci/test-v15-ps4-boot-format-audit.py
             python -m py_compile ci/v15-ps4-pkg-metadata-diff.py ci/test-v15-ps4-pkg-metadata-diff.py
             python ci/test-v15-ps4-pkg-metadata-diff.py
+            python -m py_compile ci/build-neweden-v15-pkg.py ci/test-v15-exact-baseline-mode.py
+            python ci/test-v15-exact-baseline-mode.py
             echo "PONTE R13+0489: PASS = guardas e testes negativos; nenhum PKG foi compilado."
 
 
