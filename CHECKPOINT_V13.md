@@ -1,5 +1,19 @@
 # HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT
 
+## REVISÃO MAIS NOVA — CARREGAMENTO / FIRMWARE (27/11/2026, 14h)
+
+**Nova branch de código, derivada da correção GPU da V13:** `himura-switch-v13-loading-firmware-audit-20261127`, GitHub: https://github.com/Himura866/PS4SX2/tree/himura-switch-v13-loading-firmware-audit-20261127 . Esta é a revisão em avaliação mais recente; **não substituir nem apagar** a branch GPU V13, o New Eden 04.89 nem a R13 instalada.
+
+**Relato novo de teste do usuário:** a versão R13 anterior abre Hollow Knight: Silksong, mas gameplay ainda não confirmado; outros jogos demoram ou ficam presos na tela de carregamento; o firmware não pode ser instalado pela interface atual. Evitar afirmar que qualquer jogo foi corrigido. O PKG com patch GPU no commit `f8525d932bebea1178c4719c0e6a00ec3195d7d5` ainda constava PENDING na última checagem de status do CircleCI; este novo branch de diagnóstico NÃO iniciou outra compilação PKG.
+
+**Análise do código:** o frontend Eden4 que compõe a R13 `FilesInfo()` apenas verifica se há algum arquivo em `/data/EdenPS4/nand/system/Contents/registered` e a presença de `prod.keys`. A tela **não possui instalador efetivo de firmware** nem APIs de importação de keys/update/DLC. `system.Load()`, GPU.Start() e outras etapas ocorrem ANTES de o watchdog de frames ser criado; assim, a tela pode aparentar carregamento sem diagnóstico periódico desta fase.
+
+**Código novo:** `ci/patch-v13-loading-firmware-audit.py` e `ci/test-v13-loading-firmware-audit.py`, integrados ao preflight e à receita sem alterar CPU/GPU, firmware, keys ou saves. Antes de carregar, validam que o arquivo de jogo ainda existe, é regular e não está vazio (HD desconectado gera erro imediato); o monitor de pré-jogo registra a fase de carregamento a cada 30 s se demorar, e a duração de `system.Load()` quando retorna. A interface não usa mais o texto enganoso “firmware instalado” quando só encontrou arquivos: passa a dizer que os dados foram detectados, mas não verificados; explica que importar firmware, keys e updates ainda não está disponível nesta V13.
+
+**CI:** nova branch está filtrada para validar preflight **sem compilar outro PKG** enquanto a revisão de GPU está pendente. A aprovação da CI ainda é necessária; mesmo que passe, isso NÃO demonstra instalação de firmware nem jogo funcional. Não divulgar firmwares, ROMs ou keys para testes; coletar somente `HIMURA_R13_GAME_STATUS.txt`, `eden.log`, `boot-trace.log` ou `crash.log` dos testes consentidos.
+
+**Próximos passos:** 1) confirmar resultado da compilação GPU antiga e da nova validação; 2) comparar logs de carregamento do Silksong e de um jogo que fica travado; 3) implementar instalação genuína de firmware/keys/updates/DLC somente usando APIs adequadas, pré-visualização, confirmação e backup não destrutivo; 4) verificar jogos no PS4 Pro; 5) só então unir ao PKG de teste. Atualizar este checkpoint canônico e o documento Google Drive, sem mudar o nome.
+
 ## REVISÃO MAIS RECENTE — V13 | GPU GFX7 / CRASH (27/11/2026)
 
 **Trabalho código realizado:** branch isolada `himura-switch-v13-ps4-gpu-batch-20261127` @ `f8525d932bebea1178c4719c0e6a00ec3195d7d5`. Adaptado do patch público Orbis-EDEN 0015 para a fonte Eden4 com macro real **`__OPENORBIS__`**, sem modificar o New Eden original: reduz batches de 4096 para 256 desenhos na GPU PS4 e faz flush a partir de 96 uploads; reseta contador por novo contexto Vulkan. Cinco arquivos adaptados com teste preflight. Android e PC seguem com suas políticas anteriores. **HIPÓTESE DE CRASH, NÃO SOLUÇÃO HOMOLOGADA.**
