@@ -26,6 +26,8 @@ Manter a cena SAMURAI aprovada `assets/r11-approved-menu.webp`, incluindo lua ve
 Ao integrar ao menu do motor real:
 - Remover **somente** os botões falsos na parte de baixo e o **painel/fundo preto que aparece atrás e ao redor da capa do jogo selecionado quando ela aumenta de tamanho**. Não remover o efeito de foco/zoom: a capa selecionada deve continuar maior do que as outras, com destaque visual; mostrar o cenário samurai aprovado atrás dela, sem retângulo ou moldura preta opaca.
 - Não confundir esse painel de seleção com o fundo inteiro da biblioteca: a paisagem deve permanecer visível e intacta também durante a seleção do jogo.
+- **Correção solicitada em 27/11/2026:** apagar a **escrita/letras brancas situadas logo ABAIXO da capa principal CENTRAL**, a capa que cresce quando o jogo é selecionado. O usuário suspeita que o texto faça parte da própria arte da R13; isso **ainda não está verificado visualmente**. Antes de editar, distinguir texto impresso na imagem de um rótulo desenhado pelo programa: remover o texto apenas na camada em que ele realmente existe, sem mascarar a cena com tarja, retângulo preto ou borrão e sem cortar a capa. Não remover o efeito de ampliação da capa selecionada. Não mudar a paisagem samurai, lua vermelha ou montanha. Não declarar a arte limpa antes de validar o resultado por comparação de imagens e no PS4.
+
 - Não alterar a paisagem aprovada nem substituir por outra ilustração.
 - Controles funcionais **no topo**, navegação por DualShock 4 e biblioteca com capas reais sobre o fundo.
 - Não confundir a capa PS4 (ícone externo) com o wallpaper interno.
