@@ -59,9 +59,17 @@ with tempfile.TemporaryDirectory(prefix="v15-gp4-source-") as temp:
     a.set("targ_path",names[0])
     write()
     assert builder.validate_gp4_sources(gp4,stage,names)==2
+    # The parallel V15 package has its own content ID and must be validated
+    # against the effective GP4 identity (never hardcode original EDNP00001).
+    try:
+        builder.validate_gp4_sources(gp4,stage,names,"IV0000-HIMU00015_00-HIMURASWITCHV150")
+    except ValueError as exc:
+        assert "content ID does not match" in str(exc)
+    else:
+        raise AssertionError("mismatching V15 package ID accepted")
     print("PASS: rejected traversal, wrong source, unexpected target")
 
 builder_source=builder_path.read_text(encoding="utf-8")
 assert "gp4=stage/'experimental.gp4'" in builder_source
-assert "validate_gp4_sources(gp4,stage,verified_paths)" in builder_source
+assert "validate_gp4_sources(gp4,stage,verified_paths,active_content_id)" in builder_source
 print("PASS: actual V15 builder stages GP4 correctly; no PKG created")
