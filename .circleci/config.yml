@@ -304,3 +304,4 @@ workflows:
                 - himura-switch-r13-ps4-radv-safe-probe
                 - himura-switch-r13-usb-browser-safe-20261127
                 - himura-switch-r13-ptbr-usb-20261127
+                - himura-switch-r13-next-pkg-integration-20261127
