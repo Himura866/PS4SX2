@@ -56,7 +56,7 @@ def main():
                 (807,440,1143,801),(1136,440,1476,798),
                 (1467,439,1810,799),(54,571,123,679),
                 (1806,570,1885,681),(788,793,1135,859),
-                (696,117,838,197)):
+                (696,117,838,197),(956,23,1906,190)):
         remove_mock(box)
     # Continue the actual lower landscape to 1080p with a mirror extension;
     # this starts at the last scenery row and avoids a solid black footer.
