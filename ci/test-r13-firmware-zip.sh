@@ -20,7 +20,7 @@ int main(int argc,char** argv) {
     });
     std::printf("%s\n",result.c_str());
     const bool success=result.rfind("Firmware ZIP instalado:",0)==0;
-    return success==std::string(argv[2])=="ok"?0:1;
+    return success==(std::string(argv[2])=="ok")?0:1;
 }
 CPP
 python3 - "$root/data" <<'PY'
