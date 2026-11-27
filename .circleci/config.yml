@@ -12,7 +12,7 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
-            apt-get install -y -qq ca-certificates git openssh-client curl python3 python3-pil
+            apt-get install -y -qq ca-certificates git openssh-client curl python3 python3-pil g++ zlib1g-dev
       - checkout
       - run:
           name: Validar R13 PS4 Vulkan e interface antes da compilacao
@@ -132,6 +132,7 @@ workflows:
                 - himura-switch-r13-usb-browser-safe-20261127
                 - himura-switch-r13-ptbr-usb-20261127
                 - himura-switch-r13-functional-settings-20261127
+                - himura-switch-r13-next-pkg-integration-20261127
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
