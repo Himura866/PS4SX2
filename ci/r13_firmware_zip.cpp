@@ -32,10 +32,12 @@ std::string BaseName(const std::string& s) {
 bool NameAllowed(const std::string& s) {
     if (s.empty() || s[0]=='/' || s.find('\\')!=std::string::npos ||
         s.find(':')!=std::string::npos || s.find('\0')!=std::string::npos) return false;
+    const std::string clean=s.back()=='/'?s.substr(0,s.size()-1):s;
+    if(clean.empty())return false;
     size_t start=0;
-    while(start<s.size()){
-        size_t end=s.find('/',start); if(end==std::string::npos) end=s.size();
-        const std::string part=s.substr(start,end-start);
+    while(start<clean.size()){
+        size_t end=clean.find('/',start); if(end==std::string::npos) end=clean.size();
+        const std::string part=clean.substr(start,end-start);
         if(part.empty() || part=="." || part=="..") return false;
         start=end+1;
     }
@@ -146,7 +148,7 @@ bool Parse(FILE* f,std::vector<Entry>& entries,std::string& reason){
         const size_t next=cur+46+name_len+extra+comment;
         if(next>dir.size()){reason="Nome ZIP invalido";return false;}
         const std::string name(reinterpret_cast<const char*>(c+46),name_len);
-        if((flags&1) || (flags&8) || packed==0xffffffffu || length==0xffffffffu ||
+        if((flags&1) || (flags&0x40) || packed==0xffffffffu || length==0xffffffffu ||
            offset==0xffffffffu || (method!=0&&method!=8) ||
            !NameAllowed(name)){
             reason="Entrada ZIP nao suportada/insegura";return false;
