@@ -64,6 +64,10 @@ for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-libr
  patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock patch-r13-firmware-zip patch-r13-game-library-cleanup; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
+  if [[ "${R13_PREFLIGHT_STOP_AFTER:-}" == "$patch" ]]; then
+    echo "PASS: patches up to $patch"
+    exit 0
+  fi
 done
 if [[ "${R13_PREFLIGHT_ONLY_APPLY:-0}" == 1 ]]; then
   echo "PASS: all R13 source patches applied successfully"
