@@ -141,12 +141,16 @@ from PIL import Image
 import sys
 with Image.open(sys.argv[1]) as wallpaper:
     image = wallpaper.convert('RGB')
-    for point in ((30, 1000), (200, 1025), (600, 1035), (1550, 1025), (1850, 1050)):
-        assert image.getpixel(point) == (7, 9, 17), f'Fake controls remain visible at {point}'
-print('R13: clean wallpaper footer pixels verified')
+    # The bottom is an extension of artwork, not an opaque black rectangle.
+    probe=[image.getpixel(p) for p in ((30,1000),(200,1025),(600,1035),(1550,1025),(1850,1050))]
+    assert len(set(probe))>=3, "R13 footer unexpectedly flat or masked"
+    assert all(pixel!=(7,9,17) for pixel in probe), "Old black footer mask remains"
+print('R13: artwork extended beneath the footer, without black overwrite')
 PY
 # Footer masks must be fully opaque so the PNG and live UI never overlap.
-grep -Fq 'c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+if grep -Fq 'c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then
+  echo 'R13 ERROR: opaque black footer still present' >&2; exit 51
+fi
 grep -Fq '$STAGE/skin/himura-r11-menu.png' "$BASE/eden/ps4/build.sh"
 grep -Fq '/app0/skin/himura-r11-menu.png' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fxq '#define STBI_ONLY_PNG 1' "$BASE/eden/src/common/stb.h"
@@ -198,9 +202,9 @@ if grep -Fq 'c.FillRoundRect(94, 434, 1732, 406' "$BASE/eden/src/yuzu_ps4/ui_lau
   exit 36
 fi
 grep -Fq 'c.DrawImage(picture, 0, 0);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
-grep -Fq 'c.FillRoundRect(137, 437, 349, 364' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
-grep -Fq 'c.FillRoundRect(1478, 450, 317, 330' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
-grep -Fq 'c.Text("R13", 728, 164, 35' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
+if grep -Fq 'c.FillRoundRect(137, 437, 349, 364' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then echo 'R13 ERROR: old black mask or R13 badge' >&2; exit 52; fi
+if grep -Fq 'c.FillRoundRect(1478, 450, 317, 330' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then echo 'R13 ERROR: old black mask or R13 badge' >&2; exit 52; fi
+if grep -Fq 'c.Text("R13", 728, 164, 35' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then echo 'R13 ERROR: old black mask or R13 badge' >&2; exit 52; fi
 grep -Fq 'R11NeonCover(canvas, left, TileTop, TileSize, st.time)' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'else start(st.game_focus);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
 grep -Fq 'case 5: st.modal = Modal::Power;' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"
