@@ -10,7 +10,7 @@ def sha(p):
     with p.open('rb') as f:
         for chunk in iter(lambda:f.read(1024*1024),b''): h.update(chunk)
     return h.hexdigest()
-def validate_gp4_sources(gp4, stage, expected_paths):
+def validate_gp4_sources(gp4, stage, expected_paths, content_id=CONTENT_ID):
     """Confirm LibOrbisPkg will find every file relative to the GP4's folder.
 
     PfsProperties.BuildFSTree combines GP4's directory with each orig_path;
@@ -19,7 +19,7 @@ def validate_gp4_sources(gp4, stage, expected_paths):
     document=ElementTree.parse(gp4)
     root=document.getroot()
     package=root.find("./volume/package")
-    if package is None or package.get("content_id")!=CONTENT_ID:
+    if package is None or package.get("content_id")!=content_id:
         raise ValueError("GP4 content ID does not match app0")
     entries=root.findall("./files/file")
     if len(entries)!=len(expected_paths):
@@ -55,6 +55,8 @@ def run(args):
     if not args.allow_experimental: raise ValueError('V15 runtime UI not integrated; explicit --allow-experimental needed')
     if getattr(args, 'boot_fself_experiment', False) and (not args.baseline_original or args.ptbr_labels_experimental):
         raise ValueError('Orbis fSELF probe can wrap ONLY the exact 04.89 original in --baseline-original mode')
+    if getattr(args, 'parallel_title_experiment', False) and not (args.baseline_original and args.boot_fself_experiment):
+        raise ValueError('Parallel V15 test requires exact 04.89 baseline plus fSELF wrapper')
     image=args.image0.absolute()
     if not image.is_dir(): raise ValueError('Image0 missing')
     if args.out.exists(): raise ValueError('Refusing to overwrite PKG output')
@@ -113,6 +115,25 @@ def run(args):
                 icon_image=ImageOps.fit(src.convert('RGB'),(512,512),getattr(Image, 'Resampling', Image).LANCZOS)
                 icon_image.save(stage/'sce_sys'/'icon0.png',format='PNG',optimize=True)
             r13_icon_hash=sha(stage/'sce_sys'/'icon0.png')
+        # Isolated test identity (HIMU00015) to avoid replacing installed EDNP00001.
+        # Runtime files under /data/eden-ps4 may still be shared: NO claim of save
+        # isolation, and no user install recommendation without console safeguards.
+        parallel_meta = None
+        if getattr(args, 'parallel_title_experiment', False):
+            clone_spec = importlib.util.spec_from_file_location(
+                'v15_sideby', Path(__file__).with_name('v15-sideby-sfo.py'))
+            clone_mod = importlib.util.module_from_spec(clone_spec)
+            clone_spec.loader.exec_module(clone_mod)
+            original_sfo = (stage/'sce_sys'/'param.sfo').read_bytes()
+            cloned_sfo = clone_mod.patch(original_sfo)
+            (stage/'sce_sys'/'param.sfo').write_bytes(cloned_sfo)
+            parallel_meta = {'title':clone_mod.TITLE, 'title_id':clone_mod.TITLE_ID,
+                             'content_id':clone_mod.CONTENT_ID, 'app_ver':clone_mod.APP_VER,
+                             'sfo_sha256':hashlib.sha256(cloned_sfo).hexdigest(),
+                             'runtime_data_isolated':False}
+            branded = {'title':clone_mod.TITLE, 'app_ver':clone_mod.APP_VER,
+                       'branded_sfo_sha256':parallel_meta['sfo_sha256']}
+        active_content_id = parallel_meta['content_id'] if parallel_meta else CONTENT_ID
         # This is an ISOLATED boot-format experiment: OpenOrbis expects a fSELF,
         # but the owner's PS4 FTP app0 export contains a raw ET_SCE_EXEC_ASLR ELF.
         # Wrap only the original ELF, preserving all its loadable segment bytes.
@@ -135,7 +156,7 @@ def run(args):
             if existing != allowed:
                 raise ValueError('BOOT PROBE STOP: extra/missing app0 files')
             for record in report['files']:
-                if record['path'] != 'eboot.bin' and sha(stage/record['path']) != record['sha256']:
+                if record['path'] not in ({'eboot.bin', 'sce_sys/param.sfo'} if parallel_meta else {'eboot.bin'}) and sha(stage/record['path']) != record['sha256']:
                     raise ValueError('BOOT PROBE STOP: non-eboot app0 changed: '+record['path'])
             print('BOOT-FSELF-PROBE ' + json.dumps(wrapped_info, sort_keys=True), flush=True)
         # LibOrbisPkg resolves orig_path RELATIVE TO the GP4 location, not cwd.
@@ -143,9 +164,9 @@ def run(args):
         gp4=stage/'experimental.gp4'
         verified_paths=[record['path'] for record in report['files']]
         files=' '.join(verified_paths)
-        subprocess.run([str(Path(args.create_gp4).resolve()),'-out',str(gp4),'--content-id='+CONTENT_ID,'--files',files],cwd=stage,timeout=180,check=True)
+        subprocess.run([str(Path(args.create_gp4).resolve()),'-out',str(gp4),'--content-id='+active_content_id,'--files',files],cwd=stage,timeout=180,check=True)
         if not gp4.is_file() or gp4.stat().st_size<100: raise ValueError('GP4 output missing/invalid')
-        validate_gp4_sources(gp4,stage,verified_paths)
+        validate_gp4_sources(gp4,stage,verified_paths,active_content_id)
         generated=tmp/'packages';generated.mkdir()
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_build',str(gp4),str(generated)],cwd=stage,timeout=1800,check=True)
         if args.baseline_original and not getattr(args, 'boot_fself_experiment', False):
@@ -168,18 +189,18 @@ def run(args):
             'pkg.drm_type': 15,
             'pkg.content_type': 0x1A,
             'pkg.content_flags': 0x0A000000,
-            'pkg.content_id': CONTENT_ID,
+            'pkg.content_id': active_content_id,
             'sfo.APP_TYPE': 1,
             'sfo.ATTRIBUTE': 0x00010002,
             'sfo.CATEGORY': 'gd',
-            'sfo.TITLE_ID': 'EDNP00001',
-            'sfo.CONTENT_ID': CONTENT_ID,
+            'sfo.TITLE_ID': parallel_meta['title_id'] if parallel_meta else 'EDNP00001',
+            'sfo.CONTENT_ID': active_content_id,
         }
         if args.baseline_original:
             loader_expected.update({
-                'sfo.APP_VER': '04.89',
-                'sfo.VERSION': '04.89',
-                'sfo.TITLE': 'New Eden',
+                'sfo.APP_VER': parallel_meta['app_ver'] if parallel_meta else '04.89',
+                'sfo.VERSION': parallel_meta['app_ver'] if parallel_meta else '04.89',
+                'sfo.TITLE': parallel_meta['title'] if parallel_meta else 'New Eden',
             })
         loader_actual = {}
         for key in loader_expected:
@@ -197,18 +218,19 @@ def run(args):
         dest=args.out/'HIMURA-V15-EXPERIMENTAL-NAO-INSTALAR.pkg'
         shutil.copyfile(candidates[0],dest)
         manifest={'status':'EXPERIMENTAL PKG STRUCTURE ONLY, NOT PLAYSTATION-TESTED','sha256':sha(dest),
-                  'content_id':CONTENT_ID,'size':dest.stat().st_size,
+                  'content_id':active_content_id,'size':dest.stat().st_size,
                   'r13_external_icon_sha256':r13_icon_hash,
-                  'packaging_mode':'ORIGINAL_ORBIS_ELF_FSELF_WRAPPED_BOOT_PROBE' if wrapped_info else ('EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT'),
+                  'packaging_mode':'FSELF_PARALLEL_V15_TITLE_EXPERIMENT' if parallel_meta else ('ORIGINAL_ORBIS_ELF_FSELF_WRAPPED_BOOT_PROBE' if wrapped_info else ('EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT')),
                   'original_image0_unchanged':bool(args.baseline_original and not wrapped_info),
                   'only_original_eboot_container_changed':bool(wrapped_info),
                   'fself_wrapper_report':wrapped_info,
+                  'parallel_title_metadata':parallel_meta,
                   'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
                   'sfo_sha256':branded['branded_sfo_sha256'],
                   'working_base_eboot_sha256':known_good_eboot,
                   'experimental_ptbr_label_bytes':131 if getattr(args,'ptbr_labels_experimental',False) else 0,
                   'experimental_eboot_sha256':sha(stage/'eboot.bin'),
-                  'original_title_id_preserved':True,
+                  'original_title_id_preserved':parallel_meta is None,
                   'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test'],
                   'candidate_pkg_loader_header':loader_meta['header'],
                   'candidate_pkg_sfo_fields':loader_meta['sfo'],
@@ -225,6 +247,7 @@ def main():
     p.add_argument('--allow-experimental',action='store_true')
     p.add_argument('--baseline-original',action='store_true',help='Original 04.89 SFO, icon and source ELF preserved; defaults to byte-identical Image0')
     p.add_argument('--boot-fself-experiment',action='store_true',help='Isolated non-installable test: wrap original ET_SCE_EXEC_ASLR as PS4 fSELF before PKG')
+    p.add_argument('--parallel-title-experiment',action='store_true',help='Isolated HIMU00015 PS4 test identity, no verified save/data isolation')
     p.add_argument('--ptbr-labels-experimental',action='store_true',help='Only 131 experimental label bytes; NOT full PT-BR or approved install')
     p.add_argument('--r13-icon',required=True,help='REQUIRED: verified R13 WebP external icon; never used as an internal menu background')
     a=p.parse_args()
