@@ -65,6 +65,10 @@ for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-libr
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
+if [[ "${R13_PREFLIGHT_ONLY_APPLY:-0}" == 1 ]]; then
+  echo "PASS: all R13 source patches applied successfully"
+  exit 0
+fi
 
 echo "R13 preflight: extract/CRC-test fake firmware ZIP on isolated sandbox"
 bash ci/test-r13-firmware-zip.sh
