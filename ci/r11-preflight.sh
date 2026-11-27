@@ -64,6 +64,8 @@ for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-libr
   python3 "ci/$patch.py" "$BASE"
 done
 
+echo "R13 preflight: extract/CRC-test fake firmware ZIP on isolated sandbox"
+bash ci/test-r13-firmware-zip.sh
 echo "R13 preflight: supplement filter and USB hotplug"
 grep -Fq 'R13IsSupplement(path)' "$BASE/eden/src/yuzu_ps4/main.cpp"
 grep -Fq 'r13_usb_poll=now+std::chrono::seconds{3}' "$BASE/eden/src/yuzu_ps4/main.cpp"
