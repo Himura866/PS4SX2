@@ -31,7 +31,7 @@ once('  python3 ci/patch-eden4-credits.py "$EDEN"\n',
      '  python3 ci/patch-r11-authorship.py "$EDEN"\n'
      '  python3 ci/patch-r10-boot-trace.py "$EDEN"\n'
      '  python3 ci/patch-r11-stability.py "$EDEN"\n'
-     '  python3 ci/patch-r13-ps4-radv-safe-path.py "$EDEN"\n'
+     '  python3 ci/patch-r13-ps4-radv-safe-path.py "$EDEN"\n  python3 ci/patch-v13-gpu-batch.py "$EDEN"\n'
      '  python3 ci/patch-r13-usb-browser.py "$EDEN"\n'
      '  python3 ci/patch-r11-approved-menu.py "$EDEN"\n'
      '  python3 ci/patch-r11-home-return.py "$EDEN"\n'
@@ -51,6 +51,7 @@ grep -Fq 'python3 ci/patch-r11-samurai-library.py "$EDEN"' "$dst"
 grep -Fq 'python3 ci/patch-r10-switch-toolbar.py "$EDEN"' "$dst"
 grep -Fq 'python3 ci/patch-r13-usb-browser.py "$EDEN"' "$dst"
 grep -Fq 'python3 ci/patch-r13-usb-ptbr.py "$EDEN"' "$dst"
+grep -Fq 'python3 ci/patch-v13-gpu-batch.py "$EDEN"' "$dst"
 if grep -Fq 'HIMURA SWITCH PS4-01.00-R11.pkg' "$dst"; then
   echo "R11: stale package path detected before compilation" >&2
   exit 9
