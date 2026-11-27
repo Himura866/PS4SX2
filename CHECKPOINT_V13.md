@@ -1,5 +1,15 @@
 # HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT
 
+## DIAGNÓSTICO VISUAL — FUNDO PRETO ATRÁS DAS CAPAS (27/11/2026)
+
+Usuário confirmou durante o teste da **R13 Experimental** que o fundo preto atrás das capas do Switch permanece visível. **Não pedir novo vídeo como condição**: causa de software encontrada no código.
+
+- `ci/patch-r11-approved-menu.py` injeta em `DrawR11Backdrop` cinco `c.FillRoundRect(...)` muito escuros com opacidade ~0.98 na região das capas (aprox. x=137..1795, y=437..801) para ocultar cinco capas fictícias impressas no wallpaper antigo. Desenha ainda `canvas.FillRoundRect(left - 5, TileTop - 5, TileSize + 10, TileSize + 10, 13, {0x080b16})` por capa real.
+- Existem máscaras para seta falsa/indicador da arte e rodapé preto. **Não apagar as máscaras indiscriminadamente**: imagens e botões falsos da arte original voltariam a aparecer.
+- Correção necessária em branch separada: criar fundo *limpo* sem exemplos de capas, setas nem botões inertes, preservando samurai/cenário; remover máscaras opacas redundantes após substituir a arte; manter capas reais da biblioteca, neon e botões/atalhos funcionais; atualizar preflight, fazer validação visual e CircleCI; só anunciar resultado depois de PKG gerado e teste físico.
+
+**Estado:** causa do retângulo escuro identificada no código. Correção visual ainda não implementada nem compilada em PKG.
+
 ## REGISTRO NOVO — POKÉMON ARCEUS / MENU (27/11/2026, 14h34 BRT)
 
 **Teste físico informado pelo usuário na R13 instalada:** Pokémon Legends: Arceus inicia até a tela de escolha do idioma. Ao selecionar o idioma, o aplicativo encerra com tela azul do PS4. O código foi falado como “E34 -87880”, **provavelmente CE-34878-0**, pendente de confirmação por foto. Fonte oficial PlayStation: https://www.playstation.com/pt-br/support/error-codes/ps4/ce-34878-0/ (erro genérico de aplicativo, não prova falha de GPU). Este progresso difere do Silksong, que trava no carregamento; não generalizar que todos os jogos falham na mesma etapa.
