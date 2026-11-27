@@ -27,6 +27,7 @@ root=Path(sys.argv[1])
 sha="fab246cbac93c7995aaf451dca83ae93ba0bd234"
 paths=[
   "eden/src/yuzu_ps4/CMakeLists.txt",
+  "eden/src/yuzu_ps4/ui_launcher.h",
   "eden/src/yuzu_ps4/ui_launcher.cpp",
   "eden/src/video_core/macro.cpp",
   "eden/src/video_core/vulkan_common/vulkan_device.cpp",
@@ -147,7 +148,7 @@ with Image.open(sys.argv[1]) as wallpaper:
     assert all(pixel!=(7,9,17) for pixel in probe), "Old black footer mask remains"
 print('R13: artwork extended beneath the footer, without black overwrite')
 PY
-# Footer masks must be fully opaque so the PNG and live UI never overlap.
+# Footer is scenery to the edge; printed mock buttons and black overlays must be absent.
 if grep -Fq 'c.FillRect(0, 970, Canvas::Width, 110, {0x070911}, 1.0f);' "$BASE/eden/src/yuzu_ps4/ui_launcher.cpp"; then
   echo 'R13 ERROR: opaque black footer still present' >&2; exit 51
 fi
