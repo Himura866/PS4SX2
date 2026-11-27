@@ -12,7 +12,7 @@ bash -n ci/build-r11-samurai-library.sh
 for py in ci/patch-eden4-credits.py ci/patch-r10-switch-toolbar.py \
  ci/patch-r11-samurai-library.py ci/patch-r11-theme-cache.py ci/patch-r11-autocovers.py ci/patch-r11-fps.py \
  ci/generate-r11-branding.py ci/patch-r11-authorship.py ci/patch-r10-boot-trace.py \
- ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
+ ci/patch-r11-stability.py ci/patch-r13-ps4-radv-safe-path.py ci/test-r13-ps4-radv-safe-path.py ci/patch-r13-usb-browser.py ci/patch-r13-usb-ptbr.py ci/patch-r13-fps-toggle-no-clock.py ci/patch-r11-approved-menu.py ci/patch-r11-home-return.py \
  ci/patch-r11-videoout-visibility.py ci/patch-r11-build-cache.py ci/patch-r12-active-user-videoout.py; do
   python3 -m py_compile "$py"
 done
@@ -59,11 +59,30 @@ echo "R11 preflight: all patches in packaging order"
 for patch in patch-eden4-credits patch-r10-switch-toolbar patch-r11-samurai-library patch-r11-theme-cache \
  patch-r11-autocovers patch-r11-fps generate-r11-branding patch-r11-authorship \
  patch-r10-boot-trace patch-r11-stability patch-r13-ps4-radv-safe-path patch-r13-usb-browser patch-r11-approved-menu patch-r11-home-return \
- patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr; do
+ patch-r11-videoout-visibility patch-r12-active-user-videoout patch-r13-usb-ptbr patch-r13-fps-toggle-no-clock; do
   echo "APPLY $patch"
   python3 "ci/$patch.py" "$BASE"
 done
 
+echo "R13 preflight: FPS setting, actual Vulkan gate and clock removal"
+python3 - "$BASE" <<'PY'
+from pathlib import Path
+import sys
+root=Path(sys.argv[1])/"eden/src"
+main=(root/"yuzu_ps4/main.cpp").read_text()
+ui=(root/"yuzu_ps4/ui_launcher.cpp").read_text()
+diagnostics=(root/"common/ps4_diagnostics.h").read_text()
+present=(root/"video_core/renderer_vulkan/vk_present_manager.cpp").read_text()
+assert '{"fps_overlay", "Mostrar FPS",' in main
+assert 'enabled("fps_overlay")' in main
+assert 'inline std::atomic<bool> r13_fps_overlay_enabled{true};' in diagnostics
+assert 'r13_fps_overlay_enabled.load(std::memory_order_relaxed)' in present
+assert 'canvas.Text(host.Clock()' not in ui, "do not render HOME clock"
+assert 'R11PaintFps(frame->fps_mapped);' in present, "keep real FPS when enabled"
+assert 'fprintf(file, "%s=%s\\n", option.key, option.values[option.current].first);' in main
+assert 'LoadOptions();' in main, "FPS toggle must be persisted by existing settings"
+print("PASS: persistent toggle connected to native Vulkan FPS draw, HOME clock removed")
+PY
 echo "R13 preflight: verify controller USB browser and non-destructive index"
 python3 - "$BASE" <<'PY'
 from pathlib import Path
