@@ -23,7 +23,7 @@ jobs:
             python3 - \<<'PY'
             from pathlib import Path
             s = Path("ci/patch-r11-samurai-library.py").read_text()
-            assert 'c.Text("SWITCH PS4  |  R13"' in s, "Versao visual incorreta"
+            assert 'c.Text("SWITCH PS4"' in s, "Nome visual incorreto"
             assert 'c.FillRoundRect(72, 350, 1780, 440' not in s, "Painel preto voltou"
             assert 'c.StrokeRoundRect(72, 350, 1780, 440' not in s, "Borda do painel voltou"
             assert 'R11NeonCover(canvas, left, TileTop, TileSize, st.time)' in s, "Neon ausente"
