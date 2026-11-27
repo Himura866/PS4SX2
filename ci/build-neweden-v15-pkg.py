@@ -62,6 +62,18 @@ def run(args):
                              'Rebuild Image0 with exact original app0; refusing another potentially non-booting PKG. '
                              'staged='+actual_eboot+' expected='+known_good_eboot)
         stage=tmp/'Image0';shutil.copytree(image,stage)
+        # This is an OPTIONALLY enabled, byte-verified PARTIAL translation.
+        # The original 04.89 image was verified by preflight and remains untouched.
+        if getattr(args, 'ptbr_labels_experimental', False):
+            patch_path = Path(__file__).with_name('v15-ptbr-verified-label-patch.py')
+            label_spec = importlib.util.spec_from_file_location('v15_ptbr_labels',patch_path)
+            label_mod = importlib.util.module_from_spec(label_spec)
+            label_spec.loader.exec_module(label_mod)
+            translated = label_mod.patch_bytes((stage/'eboot.bin').read_bytes())
+            (stage/'eboot.bin').write_bytes(translated)
+            if sha(stage/'eboot.bin') != label_mod.PATCHED_SHA256:
+                raise ValueError('PT-BR label patch final hash mismatch')
+
         # Rebrand visible title/version ONLY after verifying the original SFO,
         # never the installed app, PS4 title ID, data directory or eboot.
         branded_spec=importlib.util.spec_from_file_location('sfo_brand',Path(__file__).with_name('v15-brand-sfo.py'))
@@ -103,6 +115,8 @@ def run(args):
                   'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
                   'sfo_sha256':branded['branded_sfo_sha256'],
                   'working_base_eboot_sha256':known_good_eboot,
+                  'experimental_ptbr_label_bytes':131 if getattr(args,'ptbr_labels_experimental',False) else 0,
+                  'experimental_eboot_sha256':sha(stage/'eboot.bin'),
                   'original_title_id_preserved':True,
                   'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test']}
         (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
@@ -112,6 +126,7 @@ def main():
     p.add_argument('--image0',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
     p.add_argument('--create-gp4',required=True);p.add_argument('--pkgtool',required=True)
     p.add_argument('--allow-experimental',action='store_true')
+    p.add_argument('--ptbr-labels-experimental',action='store_true',help='Only 131 experimental label bytes; NOT full PT-BR or approved install')
     p.add_argument('--r13-icon',required=True,help='REQUIRED: verified R13 WebP external icon; never used as an internal menu background')
     a=p.parse_args()
     try: print(json.dumps(run(a),indent=2))
