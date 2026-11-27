@@ -1,5 +1,13 @@
 # HIMURA SWITCH V13 — ÚLTIMO CHECKPOINT
 
+## REGISTRO NOVO — POKÉMON ARCEUS / MENU (27/11/2026, 14h34 BRT)
+
+**Teste físico informado pelo usuário na R13 instalada:** Pokémon Legends: Arceus inicia até a tela de escolha do idioma. Ao selecionar o idioma, o aplicativo encerra com tela azul do PS4. O código foi falado como “E34 -87880”, **provavelmente CE-34878-0**, pendente de confirmação por foto. Fonte oficial PlayStation: https://www.playstation.com/pt-br/support/error-codes/ps4/ce-34878-0/ (erro genérico de aplicativo, não prova falha de GPU). Este progresso difere do Silksong, que trava no carregamento; não generalizar que todos os jogos falham na mesma etapa.
+
+**Relato adicional ainda incompleto:** o usuário mencionou falhas de incompatibilidade em outras partes do emulador, inclusive no menu; falta descrição de qual função do menu falha. Não afirmar que o menu provoca CE-34878-0 sem prova.
+
+**Triagem necessária:** preservar o New Eden funcional e a instalação atual. Reproduzir Arceus e coletar `HIMURA_R13_GAME_STATUS.txt`, `eden.log`, `boot-trace.log`, `crash.log` (quando existirem) imediatamente após a falha, sem enviar keys, firmware, jogos ou dados pessoais. Correlacionar o último estágio com seleção de idioma, criação de save, chamada de serviço emulado, Vulkan, JIT e alocação de memória. Comparar o mesmo ponto no New Eden. Adicionar rastreio de fase antes/depois da seleção de idioma na futura build se logs atuais insuficientes. Nenhuma correção validada até este momento; CI e PKG devem permanecer registrados como pendentes/sem prova de resolução.
+
 ## REVISÃO MAIS NOVA — CARREGAMENTO / FIRMWARE (27/11/2026, 14h)
 
 **Nova branch de código, derivada da correção GPU da V13:** `himura-switch-v13-loading-firmware-audit-20261127`, GitHub: https://github.com/Himura866/PS4SX2/tree/himura-switch-v13-loading-firmware-audit-20261127 . Esta é a revisão em avaliação mais recente; **não substituir nem apagar** a branch GPU V13, o New Eden 04.89 nem a R13 instalada.
