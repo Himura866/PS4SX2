@@ -61,7 +61,7 @@ void DrawR11Backdrop(Canvas& c) {
     }
     // The game tiles stay readable while texture remains visible at their edges.
     c.Text("HIMURA", 70, 93, 40, {0xf5f6fb});
-    c.Text("SWITCH PS4  |  R13", 73, 135, 28, {0xff3b4d});
+    c.Text("SWITCH PS4", 73, 135, 28, {0xff3b4d});
     // Personalisation label visible in the live HOME and its UI preview.
     c.Text("POD DO HIMURA", 73, 172, 21, {0xf2cbd2});
 }
