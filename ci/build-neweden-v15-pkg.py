@@ -128,6 +128,43 @@ def run(args):
             if f.read(4)!=bytes((0x7f,))+b'CNT': raise ValueError('Not a PS4 PKG header')
         # Parse and validate internal PKG digests with the real LibOrbisPkg tool.
         subprocess.run([str(Path(args.pkgtool).resolve()),'pkg_validate',str(candidates[0])],cwd=stage,timeout=600,check=True)
+        # Inspect real PS4 CNT header and embedded param.sfo in the GENERATED
+        # package, not just the trusted Image0. A valid pkg_validate result does
+        # not prove that Orbis loader attributes/DRM/PFS are compatible.
+        loader_spec = importlib.util.spec_from_file_location(
+            'v15_pkg_header_audit', Path(__file__).with_name('v15-ps4-pkg-metadata-diff.py'))
+        loader_mod = importlib.util.module_from_spec(loader_spec)
+        loader_spec.loader.exec_module(loader_mod)
+        loader_meta = loader_mod.read_package(candidates[0])
+        loader_expected = {
+            'pkg.drm_type': 15,
+            'pkg.content_type': 0x1A,
+            'pkg.content_flags': 0x0A000000,
+            'pkg.content_id': CONTENT_ID,
+            'sfo.APP_TYPE': 1,
+            'sfo.ATTRIBUTE': 0x00010002,
+            'sfo.CATEGORY': 'gd',
+            'sfo.TITLE_ID': 'EDNP00001',
+            'sfo.CONTENT_ID': CONTENT_ID,
+        }
+        if args.baseline_original:
+            loader_expected.update({
+                'sfo.APP_VER': '04.89',
+                'sfo.VERSION': '04.89',
+                'sfo.TITLE': 'New Eden',
+            })
+        loader_actual = {}
+        for key in loader_expected:
+            source, field = key.split('.', 1)
+            loader_actual[key] = loader_meta['header' if source == 'pkg' else 'sfo'].get(field)
+        loader_differences = {
+            key: {'original': expected, 'rebuilt': loader_actual[key]}
+            for key, expected in loader_expected.items()
+            if loader_actual[key] != expected
+        }
+        print('ORIGINAL-0489-LOADER-METADATA ' +
+              json.dumps({'matches_reference': not loader_differences,
+                          'differences': loader_differences}, sort_keys=True), flush=True)
         args.out.mkdir(parents=True)
         dest=args.out/'HIMURA-V15-EXPERIMENTAL-NAO-INSTALAR.pkg'
         shutil.copyfile(candidates[0],dest)
@@ -142,7 +179,13 @@ def run(args):
                   'experimental_ptbr_label_bytes':131 if getattr(args,'ptbr_labels_experimental',False) else 0,
                   'experimental_eboot_sha256':sha(stage/'eboot.bin'),
                   'original_title_id_preserved':True,
-                  'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test']}
+                  'known_missing':['runtime R13 wallpaper','V15 functional menu','PT-BR complete','PS4 boot test'],
+                  'candidate_pkg_loader_header':loader_meta['header'],
+                  'candidate_pkg_sfo_fields':loader_meta['sfo'],
+                  'candidate_pkg_embedded_sfo_sha256':loader_meta['sfo_sha256'],
+                  'candidate_pkg_embedded_icon_sha256':loader_meta['icon_sha256'],
+                  'loader_metadata_matches_original_0489':not bool(loader_differences),
+                  'loader_metadata_differences':loader_differences}
         (args.out/'manifest.json').write_text(json.dumps(manifest,indent=2)+chr(10))
         return manifest
 def main():
