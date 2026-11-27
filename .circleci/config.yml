@@ -15,7 +15,7 @@ jobs:
             apt-get install -y -qq ca-certificates git openssh-client curl python3 python3-pil
       - checkout
       - run:
-          name: Validar alteracoes visuais R13 antes da compilacao
+          name: Validar R13 PS4 Vulkan e interface antes da compilacao
           command: |
             python3 -m py_compile ci/patch-r11-samurai-library.py
             python3 - \<<'PY'
@@ -124,6 +124,7 @@ workflows:
                 - himura-switch-r11-videoout-cache-fix
                 - himura-switch-r12-active-user-videoout
                 - himura-switch-r13-stability-staging
+                - himura-switch-r13-ps4-radv-safe-probe
       - compilar_eden4_pkg_r11:
           requires:
             - validar_r11_antes_do_pkg
@@ -135,3 +136,4 @@ workflows:
                 - himura-switch-r11-videoout-cache-fix
                 - himura-switch-r12-active-user-videoout
                 - himura-switch-r13-stability-staging
+                - himura-switch-r13-ps4-radv-safe-probe
