@@ -147,6 +147,24 @@ echo "R13 preflight: PS4 RADV safe-path regression test"
 python3 ci/test-r13-ps4-radv-safe-path.py
 grep -Fq 'R13 PS4 RADV safe-path: disabling indirect count' "$BASE/eden/src/video_core/vulkan_common/vulkan_device.cpp"
 grep -Fq 'Fallback(system, maxwell3d, parameters);' "$BASE/eden/src/video_core/macro.cpp"
+echo "R13 preflight: reflection seam is continuous at full width"
+python3 - "$BASE/branding/himura-r11-menu.png" <<'PY'
+from PIL import Image
+import sys
+im=Image.open(sys.argv[1]).convert("RGB")
+assert im.size==(1920,1080)
+# No perfectly flat black line at the 970px reflection-extension seam.
+y=970
+for x in (22,210,480,810,1130,1460,1800):
+    d=lambda a,b:max(abs(a[i]-b[i]) for i in range(3))
+    p=lambda h: im.getpixel((x,h))
+    seam_delta=d(p(y-1),p(y))
+    neighbors=max(d(p(y-5),p(y-4)),d(p(y+3),p(y+4)))
+    assert seam_delta<=max(12,neighbors*3), f"Visible footer join at column {x}: {seam_delta}"
+# No opaque old footer stripe at rows 980-1075.
+assert len({im.getpixel((x,h)) for x in (32,220,790,1470,1850) for h in (985,1025,1062)})>6
+print("PASS: footer joint bounded and full-height colors retained")
+PY
 echo "R11 preflight: complete theme/assets and safe metadata"
 test -s "$BASE/branding/icon0.png"
 test -s "$BASE/branding/pic1.png"
