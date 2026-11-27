@@ -401,6 +401,8 @@ jobs:
             python ci/test-v15-ps4-boot-format-audit.py
             python -m py_compile ci/v15-ps4-pkg-metadata-diff.py ci/test-v15-ps4-pkg-metadata-diff.py
             python ci/test-v15-ps4-pkg-metadata-diff.py
+            python -m py_compile ci/v15-wrap-orbis-fself.py ci/test-v15-wrap-orbis-fself.py
+            python ci/test-v15-wrap-orbis-fself.py
             python -m py_compile ci/build-neweden-v15-pkg.py ci/test-v15-exact-baseline-mode.py
             python ci/test-v15-exact-baseline-mode.py
             echo "PONTE R13+0489: PASS = guardas e testes negativos; nenhum PKG foi compilado."
@@ -414,6 +416,7 @@ workflows:
             branches:
               only:
                 - himura-switch-r13-ui-neweden-0489-bridge
+                - himura-switch-v15-orbis-fself-boot-probe
 
   auditar_neweden_v15_prepack:
     jobs:
