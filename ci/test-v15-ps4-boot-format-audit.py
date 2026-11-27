@@ -36,7 +36,11 @@ except ValueError as exc:
 else:
     raise AssertionError("non-ELF file accepted")
 
-for candidate in [elf(segment_offset=4092, segment_size=20), elf(ph_offset=4050)]:
+out_of_bounds_table = bytearray(elf())
+# Patch e_phoff at ELF64 byte offset 32 *after* constructing a valid file.
+# This tests the parser, not struct.pack_into()'s buffer-size check.
+struct.pack_into("<Q", out_of_bounds_table, 32, 4050)
+for candidate in [elf(segment_offset=4092, segment_size=20), bytes(out_of_bounds_table)]:
     try:
         mod.parse_elf(candidate, len(candidate))
     except ValueError:
