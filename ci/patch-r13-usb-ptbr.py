@@ -208,7 +208,7 @@ UI_LITERALS = {
 def patch_ui(text: str) -> str:
     text = exactly_one(
         text,
-        'const char* const ShortcutNames[] = {"About", "Game Files", "Users", "Controllers", "System Settings", "Power"};',
+        'const char* const ShortcutNames[] = {"Sobre", "Jogos", "Usuarios", "Controles", "Ajustes", "Sair"};',
         'const char* const ShortcutNames[] = {"Sobre", "Arquivos de jogos", "Usuarios", "Controles", "Configuracoes", "Desligar"};',
         "top shortcut names",
     )
@@ -225,7 +225,7 @@ def patch_ui(text: str) -> str:
         '    if (category == "Themes") return "Temas";\n'
         '    if (category == "Sound") return "Audio";\n'
         '    if (category == "Advanced") return "Avancado";\n'
-        '    if (category == "System") return "Sistema";\n'
+        '    if (category == "System") return "Sistema";\n        '    if (category == "About") return "Sobre";\\n'\n'
         '    return value;\n'
         '}\n'
         'const Category Categories[] =',
