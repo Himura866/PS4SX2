@@ -225,7 +225,8 @@ def patch_ui(text: str) -> str:
         '    if (category == "Themes") return "Temas";\n'
         '    if (category == "Sound") return "Audio";\n'
         '    if (category == "Advanced") return "Avancado";\n'
-        '    if (category == "System") return "Sistema";\n        '    if (category == "About") return "Sobre";\\n'\n'
+        '    if (category == "System") return "Sistema";\n'
+        '    if (category == "About") return "Sobre";\n'
         '    return value;\n'
         '}\n'
         'const Category Categories[] =',
