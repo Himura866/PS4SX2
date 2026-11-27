@@ -222,7 +222,7 @@ def run(args):
                   'r13_external_icon_sha256':r13_icon_hash,
                   'packaging_mode':'FSELF_PARALLEL_V15_TITLE_EXPERIMENT' if parallel_meta else ('ORIGINAL_ORBIS_ELF_FSELF_WRAPPED_BOOT_PROBE' if wrapped_info else ('EXACT_ORIGINAL_IMAGE0' if args.baseline_original else 'V15_EXPERIMENT')),
                   'original_image0_unchanged':bool(args.baseline_original and not wrapped_info),
-                  'only_original_eboot_container_changed':bool(wrapped_info),
+                  'only_original_eboot_container_changed':bool(wrapped_info and not parallel_meta),
                   'fself_wrapper_report':wrapped_info,
                   'parallel_title_metadata':parallel_meta,
                   'display_title':branded['title'],'ps4_app_ver':branded['app_ver'],
